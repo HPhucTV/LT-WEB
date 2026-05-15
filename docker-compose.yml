@@ -1,0 +1,30 @@
+# ┌───────────────────────────────────────────────────────────────┐
+# │  TraveX — Multi-Database Docker Setup                        │
+# │  Chạy:  docker-compose up -d                                │
+# │  Tắt:   docker-compose down                                 │
+# │  Xóa data: docker-compose down -v                           │
+# └───────────────────────────────────────────────────────────────┘
+
+services:
+  # 🐘 PostgreSQL — Dữ liệu chính (User, Tour, Booking, ...)
+  postgres:
+    image: postgres:16
+    container_name: travelpro-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: travelpro
+      POSTGRES_PASSWORD: TravelPro2026
+      POSTGRES_DB: TravelTourDb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ⚡ Redis — Cache tăng tốc
+  redis:
+    image: redis:7-alpine
+    container_name: travelpro-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
