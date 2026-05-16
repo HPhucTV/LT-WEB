@@ -23,6 +23,7 @@ export default function TourDetails() {
   const [comment, setComment] = useState('')
   const [hoverRating, setHoverRating] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isBooking, setIsBooking] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -74,17 +75,21 @@ export default function TourDetails() {
       return
     }
     try {
-      await bookingApi.create({
+      setIsBooking(true)
+      const booking = await bookingApi.create({
         tourScheduleId: Number(selectedSchedule),
         customerName,
         customerPhone,
         guestCount: Number(guestCount),
       })
-      toast.success('Đặt tour thành công! Vui lòng chờ xác nhận.')
+      toast.success('Đặt tour thành công! Đang chuyển sang VNPay.')
       setSelectedSchedule('')
       setGuestCount(1)
+      navigate(`/payment/vnpay/${booking.id}`)
     } catch (err) {
       toast.error(err.message)
+    } finally {
+      setIsBooking(false)
     }
   }
 
@@ -171,6 +176,18 @@ export default function TourDetails() {
 
             <div className="details-description"><h3>Mô tả chi tiết</h3><p>{tour.description || 'Chưa có mô tả chi tiết cho tour này.'}</p></div>
 
+            {hasDiscount && (tour.promotionTitle || tour.promotionDescription || tour.discountStartDate || tour.discountEndDate) && (
+              <div className="details-promo-box">
+                <h3>{tour.promotionTitle || 'Ưu đãi đang áp dụng'}</h3>
+                {tour.promotionDescription && <p>{tour.promotionDescription}</p>}
+                {(tour.discountStartDate || tour.discountEndDate) && (
+                  <small>
+                    {tour.discountStartDate ? formatDate(tour.discountStartDate) : '...'} - {tour.discountEndDate ? formatDate(tour.discountEndDate) : '...'}
+                  </small>
+                )}
+              </div>
+            )}
+
             <div className="details-reviews-section">
               <h3>Đánh giá từ khách hàng ({reviews.length})</h3>
               {reviews.length > 0 && (
@@ -224,7 +241,7 @@ export default function TourDetails() {
                   </>
                 )}
                 {selectedSchedule && <div className="booking-total"><span>Tạm tính:</span><strong>{formatVND(tour.price * guestCount)}</strong></div>}
-                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit">Xác nhận đặt tour</button>}
+                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit" disabled={isBooking}>{isBooking ? 'Đang tạo thanh toán...' : 'Xác nhận đặt tour'}</button>}
               </form>
             </div>
           </aside>

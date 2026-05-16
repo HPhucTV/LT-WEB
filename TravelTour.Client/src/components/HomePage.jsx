@@ -98,6 +98,7 @@ export default function HomePage() {
             <li><a href="#tours">Tour</a></li>
             <li><a href="#destinations">Điểm đến</a></li>
             <li><a href="#promotions">Khuyến mãi</a></li>
+            <li><a href="/promotions" onClick={(e) => { e.preventDefault(); navigate('/promotions') }}>Ưu đãi</a></li>
             <li><a href="#about">Giới thiệu</a></li>
           </ul>
 

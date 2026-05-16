@@ -5,7 +5,7 @@ export const SIDEBAR_MAIN = [
   { key: 'schedule', label: 'Lịch trình', icon: 'schedule' },
   { key: 'customers', label: 'Khách hàng', icon: 'customer' },
   { key: 'reports', label: 'Doanh thu', icon: 'revenue' },
-  { key: 'momo', label: 'Thanh toán MoMo', icon: 'momo' },
+  { key: 'vnpay', label: 'Thanh toán VNPay', icon: 'vnpay' },
 ]
 
 export const SIDEBAR_MANAGEMENT = [
@@ -53,7 +53,7 @@ export const NAV_ICONS = {
       <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/>
     </svg>
   ),
-  momo: (
+  vnpay: (
     <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
       <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
     </svg>

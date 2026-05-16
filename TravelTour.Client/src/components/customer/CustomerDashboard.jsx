@@ -81,12 +81,12 @@ export default function CustomerDashboard() {
             <div className="cust-promo-card blue">
               <span>Giảm đến 30%</span>
               <strong>Tour hè rực rỡ</strong>
-              <button>Xem ngay →</button>
+              <Link to="/promotions">Xem ngay →</Link>
             </div>
             <div className="cust-promo-card gray">
               <span>Giảm đến 25%</span>
               <strong>Tour nước ngoài</strong>
-              <button>Xem ngay →</button>
+              <Link to="/promotions">Xem ngay →</Link>
             </div>
           </div>
         </div>

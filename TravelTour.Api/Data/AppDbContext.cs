@@ -22,6 +22,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(t => t.Destination).HasMaxLength(120);
             entity.Property(t => t.Price).HasColumnType("decimal(18,2)");
             entity.Property(t => t.OriginalPrice).HasColumnType("decimal(18,2)");
+            entity.Property(t => t.PromotionTitle).HasMaxLength(120);
+            entity.Property(t => t.PromotionDescription).HasMaxLength(500);
             entity.Property(t => t.Category).HasMaxLength(60);
             entity.HasIndex(t => t.Code).IsUnique();
         });

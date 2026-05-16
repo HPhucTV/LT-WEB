@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { customerApi } from '../api'
+import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
 
 export default function CustomerList() {
   const toast = useToast()
+  const { t } = useSettings()
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -33,18 +35,18 @@ export default function CustomerList() {
       setFormOpen(false)
       setEditItem(null)
       loadCustomers()
-      toast.success(editItem ? 'Đã cập nhật khách hàng' : 'Đã thêm khách hàng mới')
+      toast.success(editItem ? t('update') : t('addCustomer'))
     } catch (err) {
       toast.error(err.message)
     }
   }
 
   async function handleDelete(id, name) {
-    if (!confirm(`Xác nhận xoá khách hàng "${name}"?`)) return
+    if (!confirm(`Delete customer "${name}"?`)) return
     try {
       await customerApi.remove(id)
       loadCustomers()
-      toast.success(`Đã xoá khách hàng "${name}"`)
+      toast.success(t('delete'))
     } catch (err) {
       toast.error(err.message)
     }
@@ -54,38 +56,38 @@ export default function CustomerList() {
     <>
       <section className="toolbar">
         <div>
-          <h2>Quản lý khách hàng</h2>
-          <p>Danh sách khách hàng và thông tin liên hệ.</p>
+          <h2>{t('customersTitle')}</h2>
+          <p>{t('customersHelp')}</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditItem(null); setFormOpen(true) }}>+ Thêm khách hàng</button>
+        <button className="btn-primary" onClick={() => { setEditItem(null); setFormOpen(true) }}>+ {t('addCustomer')}</button>
       </section>
 
       {formOpen && (
         <div className="modal-overlay" onClick={() => setFormOpen(false)}>
           <form className="modal-body" onClick={event => event.stopPropagation()} onSubmit={handleSave}>
-            <h2>{editItem ? 'Sửa khách hàng' : 'Thêm khách hàng mới'}</h2>
+            <h2>{editItem ? t('editCustomer') : t('addNewCustomer')}</h2>
             <div className="form-grid">
-              <label>Họ tên<input name="fullName" required defaultValue={editItem?.fullName} /></label>
-              <label>Số điện thoại<input name="phone" required defaultValue={editItem?.phone} /></label>
+              <label>{t('fullName')}<input name="fullName" required defaultValue={editItem?.fullName} /></label>
+              <label>{t('phone')}<input name="phone" required defaultValue={editItem?.phone} /></label>
               <label>Email<input name="email" type="email" defaultValue={editItem?.email} /></label>
-              <label>Địa chỉ<input name="address" defaultValue={editItem?.address} /></label>
+              <label>{t('address')}<input name="address" defaultValue={editItem?.address} /></label>
             </div>
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>Huỷ</button>
-              <button type="submit" className="btn-primary">{editItem ? 'Cập nhật' : 'Thêm'}</button>
+              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>{t('cancel')}</button>
+              <button type="submit" className="btn-primary">{editItem ? t('update') : t('add')}</button>
             </div>
           </form>
         </div>
       )}
 
       {loading ? (
-        <p className="empty-msg">Đang tải...</p>
+        <p className="empty-msg">{t('loading')}</p>
       ) : customers.length === 0 ? (
-        <p className="empty-msg">Chưa có khách hàng nào.</p>
+        <p className="empty-msg">{t('noCustomers')}</p>
       ) : (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Họ tên</th><th>SĐT</th><th>Email</th><th>Địa chỉ</th><th>Hành động</th></tr></thead>
+            <thead><tr><th>#</th><th>{t('fullName')}</th><th>{t('phone')}</th><th>Email</th><th>{t('address')}</th><th>{t('action')}</th></tr></thead>
             <tbody>
               {customers.map(customer => (
                 <tr key={customer.id}>
@@ -95,8 +97,8 @@ export default function CustomerList() {
                   <td>{customer.email || '-'}</td>
                   <td>{customer.address || '-'}</td>
                   <td className="row-actions">
-                    <button className="btn-sm" onClick={() => { setEditItem(customer); setFormOpen(true) }}>Sửa</button>
-                    <button className="btn-sm btn-danger" onClick={() => handleDelete(customer.id, customer.fullName)}>Xoá</button>
+                    <button className="btn-sm" onClick={() => { setEditItem(customer); setFormOpen(true) }}>{t('edit')}</button>
+                    <button className="btn-sm btn-danger" onClick={() => handleDelete(customer.id, customer.fullName)}>{t('delete')}</button>
                   </td>
                 </tr>
               ))}

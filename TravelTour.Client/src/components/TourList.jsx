@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
 import { formatVND } from '../utils/format'
 import ScheduleList from './ScheduleList'
@@ -11,6 +12,7 @@ export default function TourList() {
   const { tours, onRefresh } = useOutletContext()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useSettings()
   const isCustomer = user?.role?.toLowerCase() === 'customer' || !user?.role
   const toast = useToast()
   const [search, setSearch] = useState('')
@@ -24,11 +26,11 @@ export default function TourList() {
   })
 
   async function handleDelete(id, name) {
-    if (!confirm(`Xác nhận xoá tour "${name}"?`)) return
+    if (!confirm(`Delete tour "${name}"?`)) return
     try {
       await tourApi.remove(id)
       onRefresh()
-      toast.success(`Đã xoá tour "${name}"`)
+      toast.success(`Deleted tour "${name}"`)
     } catch (err) {
       toast.error(err.message)
     }
@@ -42,19 +44,19 @@ export default function TourList() {
     <>
       <section className="toolbar">
         <div>
-          <h2>Danh sách tour</h2>
-          <p>{isCustomer ? 'Tìm kiếm và đặt các tour du lịch hấp dẫn.' : 'Quản lý thông tin tour, điểm đến, giá và sức chứa.'}</p>
+          <h2>{t('toursListTitle')}</h2>
+          <p>{isCustomer ? t('toursListCustomerHelp') : t('toursListAdminHelp')}</p>
         </div>
         <div className="toolbar-actions">
-          <input placeholder="Tìm tour, mã tour, điểm đến..." value={search} onChange={event => setSearch(event.target.value)} />
-          {!isCustomer && <button className="btn-primary" onClick={() => { setEditTour(null); setFormOpen(true) }}>+ Thêm tour</button>}
+          <input placeholder={t('searchTourCodeDestination')} value={search} onChange={event => setSearch(event.target.value)} />
+          {!isCustomer && <button className="btn-primary" onClick={() => { setEditTour(null); setFormOpen(true) }}>+ {t('addTour')}</button>}
         </div>
       </section>
 
       {formOpen && <TourForm tour={editTour} onClose={() => setFormOpen(false)} onSaved={() => { setFormOpen(false); onRefresh() }} />}
 
       {filtered.length === 0 ? (
-        <p className="empty-msg">Không có tour nào.</p>
+        <p className="empty-msg">{t('noTours')}</p>
       ) : (
         <div className="tour-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', alignItems: 'stretch' }}>
           {filtered.map(tour => (
@@ -63,24 +65,24 @@ export default function TourList() {
               <div className="tour-content" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                 <div className="tour-heading">
                   <span>{tour.code}</span>
-                  <span className={tour.isActive ? 'open' : 'closed'}>{tour.isActive ? 'Đang mở' : 'Đã đóng'}</span>
+                  <span className={tour.isActive ? 'open' : 'closed'}>{tour.isActive ? t('openStatus') : t('closedStatus')}</span>
                 </div>
                 <h3>{tour.name}</h3>
-                <p>{tour.description || 'Chưa có mô tả.'}</p>
+                <p>{tour.description || t('noDescription')}</p>
                 <dl>
-                  <div><dt>Điểm đến</dt><dd>{tour.destination}</dd></div>
-                  <div><dt>Thời gian</dt><dd>{tour.durationDays} ngày</dd></div>
-                  <div><dt>Giá</dt><dd>{formatVND(tour.price)}</dd></div>
-                  <div><dt>Sức chứa</dt><dd>{tour.maxGuests} khách</dd></div>
+                  <div><dt>{t('destination')}</dt><dd>{tour.destination}</dd></div>
+                  <div><dt>{t('duration')}</dt><dd>{tour.durationDays} {t('days')}</dd></div>
+                  <div><dt>{t('priceFrom')}</dt><dd>{formatVND(tour.price)}</dd></div>
+                  <div><dt>{t('capacity')}</dt><dd>{tour.maxGuests} {t('guests')}</dd></div>
                 </dl>
                 <div className="card-actions" style={{ marginTop: 'auto' }}>
                   {isCustomer ? (
-                    <button className="btn-primary full-width" onClick={() => navigate(`/tours/${tour.id}`)}>Xem chi tiết / Đặt vé</button>
+                    <button className="btn-primary full-width" onClick={() => navigate(`/tours/${tour.id}`)}>{t('viewBookTicket')}</button>
                   ) : (
                     <>
-                      <button className="btn-sm" onClick={() => setScheduleTour(tour)}>Lịch khởi hành</button>
-                      <button className="btn-sm" onClick={() => { setEditTour(tour); setFormOpen(true) }}>Sửa</button>
-                      <button className="btn-sm btn-danger" onClick={() => handleDelete(tour.id, tour.name)}>Xoá</button>
+                      <button className="btn-sm" onClick={() => setScheduleTour(tour)}>{t('departureSchedule')}</button>
+                      <button className="btn-sm" onClick={() => { setEditTour(tour); setFormOpen(true) }}>{t('edit')}</button>
+                      <button className="btn-sm btn-danger" onClick={() => handleDelete(tour.id, tour.name)}>{t('delete')}</button>
                     </>
                   )}
                 </div>

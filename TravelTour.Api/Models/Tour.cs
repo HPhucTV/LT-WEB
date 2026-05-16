@@ -16,6 +16,14 @@ public class Tour
 
     public decimal OriginalPrice { get; set; }
 
+    public string PromotionTitle { get; set; } = string.Empty;
+
+    public string PromotionDescription { get; set; } = string.Empty;
+
+    public DateOnly? DiscountStartDate { get; set; }
+
+    public DateOnly? DiscountEndDate { get; set; }
+
     public int MaxGuests { get; set; }
 
     public string Category { get; set; } = "Khám phá";

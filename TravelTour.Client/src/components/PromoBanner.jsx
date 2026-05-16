@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const PROMOS = [
   {
@@ -28,6 +29,7 @@ const PROMOS = [
 ]
 
 export default function PromoBanner() {
+  const navigate = useNavigate()
   const [current, setCurrent] = useState(0)
   const [copied, setCopied] = useState(false)
 
@@ -58,6 +60,9 @@ export default function PromoBanner() {
           </div>
           <button className="promo-code-btn" onClick={() => copyCode(promo.code)}>
             {copied ? '✓ Đã sao chép!' : `Mã: ${promo.code}`}
+          </button>
+          <button className="promo-code-btn promo-view-btn" onClick={() => navigate('/promotions')}>
+            Xem ưu đãi
           </button>
         </div>
         <div className="promo-dots">

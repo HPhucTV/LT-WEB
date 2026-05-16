@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { scheduleApi } from '../api'
+import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
 import { formatDate } from '../utils/format'
 
 export default function ScheduleList({ tour, onBack }) {
   const toast = useToast()
+  const { t } = useSettings()
   const [schedules, setSchedules] = useState([])
   const [formOpen, setFormOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
@@ -33,67 +35,73 @@ export default function ScheduleList({ tour, onBack }) {
       setFormOpen(false)
       setEditItem(null)
       loadSchedules()
-      toast.success(editItem ? 'Đã cập nhật lịch' : 'Đã thêm lịch khởi hành')
+      toast.success(editItem ? t('updateSchedule') : t('addNewSchedule'))
     } catch (err) {
       toast.error(err.message)
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Xác nhận xoá lịch khởi hành này?')) return
+    if (!confirm('Delete this schedule?')) return
     try {
       await scheduleApi.remove(id)
       loadSchedules()
-      toast.success('Đã xoá lịch')
+      toast.success(t('delete'))
     } catch (err) {
       toast.error(err.message)
     }
   }
 
+  function statusLabel(status) {
+    if (status === 'Open') return t('openRegistration')
+    if (status === 'Full') return t('fullStatus')
+    return t('closedStatus')
+  }
+
   return (
     <>
-      <button className="btn-back" onClick={onBack}>← Quay lại danh sách tour</button>
+      <button className="btn-back" onClick={onBack}>← {t('backToTours')}</button>
       <section className="toolbar">
         <div>
-          <h2>Lịch khởi hành - {tour.name}</h2>
-          <p>Quản lý các đợt khởi hành cho tour này.</p>
+          <h2>{t('scheduleTitle')} - {tour.name}</h2>
+          <p>{t('scheduleHelp')}</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditItem(null); setFormOpen(true) }}>+ Thêm lịch</button>
+        <button className="btn-primary" onClick={() => { setEditItem(null); setFormOpen(true) }}>+ {t('addSchedule')}</button>
       </section>
 
       {formOpen && (
         <div className="modal-overlay" onClick={() => setFormOpen(false)}>
           <form className="modal-body" onClick={event => event.stopPropagation()} onSubmit={handleSave}>
-            <h2>{editItem ? 'Cập nhật lịch' : 'Thêm lịch khởi hành'}</h2>
+            <h2>{editItem ? t('updateSchedule') : t('addNewSchedule')}</h2>
             <div className="form-grid">
-              <label>Ngày bắt đầu<input name="startDate" type="date" required defaultValue={editItem?.startDate?.split('T')[0]} /></label>
-              <label>Ngày kết thúc<input name="endDate" type="date" required defaultValue={editItem?.endDate?.split('T')[0]} /></label>
-              <label>Số chỗ còn<input name="availableSeats" type="number" min="1" required defaultValue={editItem?.availableSeats || tour.maxGuests} /></label>
-              <label>Trạng thái
+              <label>{t('startDate')}<input name="startDate" type="date" required defaultValue={editItem?.startDate?.split('T')[0]} /></label>
+              <label>{t('endDate')}<input name="endDate" type="date" required defaultValue={editItem?.endDate?.split('T')[0]} /></label>
+              <label>{t('availableSeats')}<input name="availableSeats" type="number" min="1" required defaultValue={editItem?.availableSeats || tour.maxGuests} /></label>
+              <label>{t('status')}
                 <select name="status" defaultValue={editItem?.status || 'Open'}>
-                  <option value="Open">Mở đăng ký</option>
-                  <option value="Closed">Đã đóng</option>
-                  <option value="Full">Hết chỗ</option>
+                  <option value="Open">{t('openRegistration')}</option>
+                  <option value="Closed">{t('closedStatus')}</option>
+                  <option value="Full">{t('fullStatus')}</option>
                 </select>
               </label>
-              <label>Hướng dẫn viên<input name="guideName" defaultValue={editItem?.guideName || ''} /></label>
-              <label>Ghi chú<input name="note" defaultValue={editItem?.note || ''} /></label>
+              <label>{t('guide')}<input name="guideName" defaultValue={editItem?.guideName || ''} /></label>
+              <label>{t('note')}<input name="note" defaultValue={editItem?.note || ''} /></label>
             </div>
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>Huỷ</button>
-              <button type="submit" className="btn-primary">{editItem ? 'Cập nhật' : 'Thêm'}</button>
+              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>{t('cancel')}</button>
+              <button type="submit" className="btn-primary">{editItem ? t('update') : t('add')}</button>
             </div>
           </form>
         </div>
       )}
 
       {schedules.length === 0 ? (
-        <p className="empty-msg">Chưa có lịch khởi hành nào.</p>
+        <p className="empty-msg">{t('emptyCampaign')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>#</th><th>Ngày bắt đầu</th><th>Ngày kết thúc</th><th>Số chỗ còn</th><th>Hướng dẫn viên</th><th>Trạng thái</th><th>Hành động</th></tr>
+              <tr><th>#</th><th>{t('startDate')}</th><th>{t('endDate')}</th><th>{t('availableSeats')}</th><th>{t('guide')}</th><th>{t('status')}</th><th>{t('action')}</th></tr>
             </thead>
             <tbody>
               {schedules.map(schedule => (
@@ -102,11 +110,11 @@ export default function ScheduleList({ tour, onBack }) {
                   <td>{formatDate(schedule.startDate)}</td>
                   <td>{formatDate(schedule.endDate)}</td>
                   <td>{schedule.availableSeats}</td>
-                  <td>{schedule.guideName || 'Chưa phân công'}</td>
-                  <td><span className={schedule.status === 'Open' ? 'open' : 'closed'}>{schedule.status === 'Open' ? 'Mở' : schedule.status === 'Full' ? 'Hết chỗ' : 'Đóng'}</span></td>
+                  <td>{schedule.guideName || t('unassigned')}</td>
+                  <td><span className={schedule.status === 'Open' ? 'open' : 'closed'}>{statusLabel(schedule.status)}</span></td>
                   <td className="row-actions">
-                    <button className="btn-sm" onClick={() => { setEditItem(schedule); setFormOpen(true) }}>Sửa</button>
-                    <button className="btn-sm btn-danger" onClick={() => handleDelete(schedule.id)}>Xoá</button>
+                    <button className="btn-sm" onClick={() => { setEditItem(schedule); setFormOpen(true) }}>{t('edit')}</button>
+                    <button className="btn-sm btn-danger" onClick={() => handleDelete(schedule.id)}>{t('delete')}</button>
                   </td>
                 </tr>
               ))}

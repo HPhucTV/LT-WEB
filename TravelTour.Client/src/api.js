@@ -42,6 +42,11 @@ async function request(url, options = {}) {
     return handleMockRequest(url, options)
   }
 
+  if (response.status === 401 && url === '/auth/login') {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.message || 'Tên đăng nhập hoặc mật khẩu không đúng.')
+  }
+
   if (response.status === 401) {
     const currentToken = getToken()
     if (currentToken && currentToken.startsWith('mock_jwt_')) {
@@ -131,7 +136,7 @@ export const bookingApi = {
   create: (data) => request('/bookings', { method: 'POST', body: JSON.stringify(data) }),
   updateStatus: (id, status) =>
     request(`/bookings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
-  payWithMomo: (id) => request(`/payments/momo/bookings/${id}`, { method: 'POST' }),
+  payWithVnpay: (id) => request(`/payments/vnpay/bookings/${id}`, { method: 'POST' }),
   remove: (id) => request(`/bookings/${id}`, { method: 'DELETE' }),
 }
 

@@ -8,6 +8,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root.theme-dark {
+  color: #e5edf7;
+  background: #0f172a;
+}
+
 * {
   box-sizing: border-box;
 }

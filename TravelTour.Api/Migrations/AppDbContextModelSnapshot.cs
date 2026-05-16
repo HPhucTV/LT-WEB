@@ -257,6 +257,22 @@ namespace TravelTour.Api.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateOnly?>("DiscountEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("DiscountStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PromotionDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PromotionTitle")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")

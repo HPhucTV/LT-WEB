@@ -1,23 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { guideApi, scheduleApi, tourApi } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import { useToast } from '../../contexts/ToastContext'
 import { formatDate } from '../../utils/format'
 
-const STATUS_OPTIONS = [
-  { value: 'Open', label: 'Mở đăng ký' },
-  { value: 'Closed', label: 'Đã đóng' },
-  { value: 'Full', label: 'Hết chỗ' },
-  { value: 'Departed', label: 'Đã khởi hành' },
-  { value: 'Completed', label: 'Đã kết thúc' },
-]
+const STATUS_VALUES = ['Open', 'Closed', 'Full', 'Departed', 'Completed']
 
 function toDateInput(value) {
   return value ? String(value).split('T')[0] : ''
-}
-
-function statusLabel(status) {
-  return STATUS_OPTIONS.find(item => item.value === status)?.label || status
 }
 
 function statusClass(status) {
@@ -39,6 +30,7 @@ function isAssignedToGuide(schedule, user) {
 
 export default function StaffSchedule({ canManage = false }) {
   const { user } = useAuth()
+  const { t } = useSettings()
   const toast = useToast()
   const [schedules, setSchedules] = useState([])
   const [tours, setTours] = useState([])
@@ -49,6 +41,15 @@ export default function StaffSchedule({ canManage = false }) {
   const [availableGuides, setAvailableGuides] = useState([])
 
   useEffect(() => { loadData() }, [])
+
+  function statusLabel(status) {
+    if (status === 'Open') return t('openRegistration')
+    if (status === 'Closed') return t('closedStatus')
+    if (status === 'Full') return t('fullStatus')
+    if (status === 'Departed') return t('departedStatus')
+    if (status === 'Completed') return t('completedStatus')
+    return status
+  }
 
   async function loadData() {
     try {
@@ -123,10 +124,10 @@ export default function StaffSchedule({ canManage = false }) {
     try {
       if (editItem) {
         await scheduleApi.update(editItem.id, payload)
-        toast.success('Đã cập nhật lịch trình')
+        toast.success(t('updateSchedule'))
       } else {
         await scheduleApi.create(tourId, payload)
-        toast.success('Đã thêm lịch trình')
+        toast.success(t('addNewSchedule'))
       }
       setFormOpen(false)
       setEditItem(null)
@@ -137,10 +138,10 @@ export default function StaffSchedule({ canManage = false }) {
   }
 
   async function handleDelete(item) {
-    if (!confirm(`Xoá lịch của "${item.tourName}"?`)) return
+    if (!confirm(`Delete schedule "${item.tourName}"?`)) return
     try {
       await scheduleApi.remove(item.id)
-      toast.success('Đã xoá lịch trình')
+      toast.success(t('delete'))
       loadData()
     } catch (err) {
       toast.error(err.message)
@@ -150,61 +151,45 @@ export default function StaffSchedule({ canManage = false }) {
   return (
     <section className="schedule-page">
       <div className="schedule-summary">
-        <article>
-          <span>Tổng lịch</span>
-          <strong>{stats.total}</strong>
-        </article>
-        <article>
-          <span>Đang mở</span>
-          <strong>{stats.open}</strong>
-        </article>
-        <article>
-          <span>Đã đặt</span>
-          <strong>{stats.booked}</strong>
-        </article>
-        <article>
-          <span>Còn trống</span>
-          <strong>{stats.available}</strong>
-        </article>
+        <article><span>{t('totalSchedules')}</span><strong>{stats.total}</strong></article>
+        <article><span>{t('openStatus')}</span><strong>{stats.open}</strong></article>
+        <article><span>{t('bookedSeats')}</span><strong>{stats.booked}</strong></article>
+        <article><span>{t('available')}</span><strong>{stats.available}</strong></article>
       </div>
 
       <section className="toolbar">
         <div>
-          <h2>{canManage ? 'Lịch trình tour' : 'Lịch hướng dẫn của tôi'}</h2>
-          <p>{canManage ? 'Quản lý đợt khởi hành, phân công hướng dẫn viên và theo dõi số chỗ.' : 'Theo dõi các chuyến đi được phân công và số lượng khách.'}</p>
+          <h2>{canManage ? t('scheduleTourTitle') : t('myGuideSchedule')}</h2>
+          <p>{canManage ? t('scheduleTourHelp') : t('myGuideScheduleHelp')}</p>
         </div>
         <div className="toolbar-actions">
-          <input
-            value={filter.keyword}
-            onChange={e => setFilter({ ...filter, keyword: e.target.value })}
-            placeholder="Tìm tour hoặc hướng dẫn viên..."
-          />
+          <input value={filter.keyword} onChange={e => setFilter({ ...filter, keyword: e.target.value })} placeholder={t('searchTourGuide')} />
           <select value={filter.tourId} onChange={e => setFilter({ ...filter, tourId: e.target.value })}>
-            <option value="">Tất cả tour</option>
+            <option value="">{t('allTours')}</option>
             {tours.map(tour => <option key={tour.id} value={tour.id}>{tour.name}</option>)}
           </select>
           <select value={filter.status} onChange={e => setFilter({ ...filter, status: e.target.value })}>
-            <option value="">Tất cả trạng thái</option>
-            {STATUS_OPTIONS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+            <option value="">{t('allStatuses')}</option>
+            {STATUS_VALUES.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}
           </select>
-          {canManage && <button className="btn-primary" onClick={openCreateForm}>+ Thêm lịch</button>}
+          {canManage && <button className="btn-primary" onClick={openCreateForm}>+ {t('addSchedule')}</button>}
         </div>
       </section>
 
       {filteredSchedules.length === 0 ? (
-        <p className="empty-msg">Chưa có lịch trình phù hợp.</p>
+        <p className="empty-msg">{t('matchingScheduleEmpty')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Tour</th>
-                <th>Thời gian</th>
-                <th>Hướng dẫn viên</th>
-                <th>Tiến độ</th>
-                <th>Trạng thái</th>
-                <th>Ghi chú</th>
-                {canManage && <th>Hành động</th>}
+                <th>{t('tour')}</th>
+                <th>{t('duration')}</th>
+                <th>{t('guide')}</th>
+                <th>{t('progress')}</th>
+                <th>{t('status')}</th>
+                <th>{t('note')}</th>
+                {canManage && <th>{t('action')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -217,19 +202,19 @@ export default function StaffSchedule({ canManage = false }) {
                   <tr key={item.id}>
                     <td><strong>{item.tourName}</strong></td>
                     <td>{formatDate(item.startDate)} - {formatDate(item.endDate)}</td>
-                    <td>{item.guideName || 'Chưa phân công'}</td>
+                    <td>{item.guideName || t('unassigned')}</td>
                     <td>
                       <div className="schedule-progress">
                         <div><span style={{ width: `${percent}%` }} /></div>
-                        <small>{booked}/{totalSeats} khách</small>
+                        <small>{booked}/{totalSeats} {t('guests')}</small>
                       </div>
                     </td>
                     <td><span className={`status-badge ${statusClass(item.status)}`}>{statusLabel(item.status)}</span></td>
                     <td>{item.note || '-'}</td>
                     {canManage && (
                       <td className="row-actions">
-                        <button className="btn-sm" onClick={() => openEditForm(item)}>Sửa</button>
-                        <button className="btn-sm btn-danger" onClick={() => handleDelete(item)}>Xoá</button>
+                        <button className="btn-sm" onClick={() => openEditForm(item)}>{t('edit')}</button>
+                        <button className="btn-sm btn-danger" onClick={() => handleDelete(item)}>{t('delete')}</button>
                       </td>
                     )}
                   </tr>
@@ -243,61 +228,47 @@ export default function StaffSchedule({ canManage = false }) {
       {canManage && formOpen && (
         <div className="modal-overlay" onClick={() => setFormOpen(false)}>
           <form className="modal-body" onClick={event => event.stopPropagation()} onSubmit={handleSave}>
-            <h2>{editItem ? 'Cập nhật lịch trình' : 'Thêm lịch trình'}</h2>
+            <h2>{editItem ? t('updateSchedule') : t('addNewSchedule')}</h2>
             <div className="form-grid">
-              <label>Tour
+              <label>{t('tour')}
                 <select name="tourId" required defaultValue={editItem?.tourId || ''} disabled={!!editItem}>
-                  <option value="">Chọn tour</option>
+                  <option value="">{t('selectTour')}</option>
                   {tours.map(tour => <option key={tour.id} value={tour.id}>{tour.name}</option>)}
                 </select>
               </label>
-              <label>Ngày khởi hành
-                <input
-                  name="startDate"
-                  type="date"
-                  required
-                  value={formDates.startDate}
-                  onChange={event => setFormDates({ ...formDates, startDate: event.target.value })}
-                />
+              <label>{t('startDate')}
+                <input name="startDate" type="date" required value={formDates.startDate} onChange={event => setFormDates({ ...formDates, startDate: event.target.value })} />
               </label>
-              <label>Ngày kết thúc
-                <input
-                  name="endDate"
-                  type="date"
-                  required
-                  value={formDates.endDate}
-                  onChange={event => setFormDates({ ...formDates, endDate: event.target.value })}
-                />
+              <label>{t('endDate')}
+                <input name="endDate" type="date" required value={formDates.endDate} onChange={event => setFormDates({ ...formDates, endDate: event.target.value })} />
               </label>
-              <label>Số chỗ còn
+              <label>{t('availableSeats')}
                 <input name="availableSeats" type="number" min="1" required defaultValue={editItem?.availableSeats || 20} />
               </label>
-              <label>Trạng thái
+              <label>{t('status')}
                 <select name="status" defaultValue={editItem?.status || 'Open'}>
-                  {STATUS_OPTIONS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {STATUS_VALUES.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}
                 </select>
               </label>
-              <label className="form-grid-wide">Hướng dẫn viên
+              <label className="form-grid-wide">{t('guide')}
                 <select name="guideUserId" defaultValue={editItem?.guideUserId || ''}>
-                  <option value="">Chưa phân công</option>
+                  <option value="">{t('unassigned')}</option>
                   {editItem?.guideUserId && !availableGuides.some(guide => guide.id === editItem.guideUserId) && (
-                    <option value={editItem.guideUserId}>{editItem.guideName || 'Hướng dẫn viên hiện tại'}</option>
+                    <option value={editItem.guideUserId}>{editItem.guideName || t('currentGuide')}</option>
                   )}
                   {availableGuides.map(guide => (
-                    <option key={guide.id} value={guide.id}>
-                      {guide.fullName}{guide.availabilityNote ? ` - ${guide.availabilityNote}` : ''}
-                    </option>
+                    <option key={guide.id} value={guide.id}>{guide.fullName}{guide.availabilityNote ? ` - ${guide.availabilityNote}` : ''}</option>
                   ))}
                 </select>
-                <small>{formDates.startDate && formDates.endDate ? 'Chỉ hiển thị hướng dẫn viên đã khai báo rảnh và chưa bị trùng tour.' : 'Chọn ngày để xem hướng dẫn viên rảnh.'}</small>
+                <small>{formDates.startDate && formDates.endDate ? t('onlyAvailableGuides') : t('chooseDateForGuides')}</small>
               </label>
-              <label className="form-grid-wide">Ghi chú
-                <textarea name="note" rows="3" defaultValue={editItem?.note || ''} placeholder="Thông tin nội bộ cho chuyến đi" />
+              <label className="form-grid-wide">{t('note')}
+                <textarea name="note" rows="3" defaultValue={editItem?.note || ''} placeholder={t('internalTripNote')} />
               </label>
             </div>
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>Huỷ</button>
-              <button type="submit" className="btn-primary">{editItem ? 'Cập nhật' : 'Thêm'}</button>
+              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>{t('cancel')}</button>
+              <button type="submit" className="btn-primary">{editItem ? t('update') : t('add')}</button>
             </div>
           </form>
         </div>

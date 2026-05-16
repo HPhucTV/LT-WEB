@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { SettingsProvider } from './contexts/SettingsContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
 /* ─── Public pages ─── */
@@ -15,9 +16,12 @@ import TourList from './components/TourList'
 import BookingList from './components/BookingList'
 import CustomerList from './components/CustomerList'
 import ReportPage from './components/ReportPage'
-import MomoPage from './components/MomoPage'
+import VnpayPage from './components/VnpayPage'
+import PaymentResultPage from './components/PaymentResultPage'
+import VnpayRedirectPage from './components/VnpayRedirectPage'
 import UsersPage from './components/UsersPage'
 import SettingsPage from './components/SettingsPage'
+import SummerCampaignPage from './components/SummerCampaignPage'
 
 /* ─── Staff pages ─── */
 import StaffLayout from './components/staff/StaffLayout'
@@ -39,12 +43,16 @@ import './App.css'
 function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <Routes>
+      <SettingsProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
             <Route path="/tours/:id" element={<TourDetails />} />
+            <Route path="/promotions" element={<SummerCampaignPage audience="public" />} />
+            <Route path="/payment/vnpay/:bookingId" element={<ProtectedRoute allowedRoles={['customer', '']}><VnpayRedirectPage /></ProtectedRoute>} />
+            <Route path="/payment-result" element={<PaymentResultPage />} />
             <Route path="/login" element={<LoginPage />} />
 
             {/* Admin — only Admin role */}
@@ -56,9 +64,10 @@ function App() {
               <Route path="schedule" element={<StaffSchedule canManage />} />
               <Route path="customers" element={<CustomerList />} />
               <Route path="reports" element={<ReportPage />} />
-              <Route path="momo" element={<MomoPage />} />
+              <Route path="vnpay" element={<VnpayPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="promotions" element={<SummerCampaignPage />} />
             </Route>
 
             {/* Staff — only Staff role */}
@@ -86,9 +95,10 @@ function App() {
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </ToastProvider>
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </SettingsProvider>
     </AuthProvider>
   )
 }

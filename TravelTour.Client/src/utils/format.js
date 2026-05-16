@@ -23,7 +23,7 @@ export function formatDate(dateStr) {
 export function paymentStatusLabel(status) {
   switch (status) {
     case 'Paid': return 'Đã thanh toán'
-    case 'PaymentCreated': return 'Chờ MoMo'
+    case 'PaymentCreated': return 'Chờ VNPay'
     case 'PaymentFailed': return 'Thất bại'
     default: return 'Chưa thanh toán'
   }

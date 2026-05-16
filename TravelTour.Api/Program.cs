@@ -5,9 +5,14 @@ using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using TravelTour.Api.Data;
 using TravelTour.Api.Options;
+using TravelTour.Api.Repositories;
 using TravelTour.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 // ─── Database ───────────────────────────────────────────────────────────────
 
@@ -24,8 +29,22 @@ builder.Services.AddSingleton<CacheService>();
 
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<PasswordService>();
-builder.Services.Configure<MomoOptions>(builder.Configuration.GetSection("Momo"));
-builder.Services.AddHttpClient<MomoPaymentService>();
+builder.Services.Configure<VnpayOptions>(builder.Configuration.GetSection("Vnpay"));
+builder.Services.AddSingleton<VnpayPaymentService>();
+builder.Services.AddScoped<ITourRepository, TourRepository>();
+builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<TourService>();
+builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<GuideAvailabilityService>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<ReviewService>();
+builder.Services.AddScoped<UserManagementService>();
 
 // ─── Authentication & Authorization ─────────────────────────────────────────
 
@@ -60,6 +79,8 @@ builder.Services.AddOpenApi();
 // ─── Build & Middleware ─────────────────────────────────────────────────────
 
 var app = builder.Build();
+
+await DataSeeder.SeedAsync(app.Services);
 
 // Global exception handler — prevents stack traces from leaking to clients
 app.UseExceptionHandler(errorApp =>

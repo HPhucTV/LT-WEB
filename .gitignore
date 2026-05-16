@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+dist/
+dist-ssr/
+
+# Logs and local runtime files
+*.log
+*.err
+*.out
+*.lscache
+*.local
+
+# Dependencies
+node_modules/
+
+# IDE and OS files
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
