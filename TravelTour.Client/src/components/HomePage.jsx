@@ -19,6 +19,7 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false)
   const [tourRatings, setTourRatings] = useState({})
   const [favorites, setFavorites] = useState(new Set())
+  const [inspirationIndex, setInspirationIndex] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -72,6 +73,14 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (tours.length <= 3) return undefined
+    const timer = setInterval(() => {
+      setInspirationIndex(prev => (prev + 1) % tours.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [tours.length])
+
   const filteredTours = tours.filter(t => {
     const q = searchTerm.toLowerCase()
     const matchSearch = t.name.toLowerCase().includes(q) || t.destination.toLowerCase().includes(q)
@@ -79,6 +88,21 @@ export default function HomePage() {
     const matchPrice = t.price <= priceRange
     return matchSearch && matchCategory && matchPrice
   })
+
+  const fallbackInspirationTours = [
+    { id: 'fallback-da-lat', name: 'Đà Lạt nghỉ dưỡng', destination: 'Đà Lạt', durationDays: 3 },
+    { id: 'fallback-phu-quoc', name: 'Phú Quốc biển xanh', destination: 'Phú Quốc', durationDays: 3 },
+    { id: 'fallback-ha-long', name: 'Hạ Long du thuyền', destination: 'Hạ Long', durationDays: 2 }
+  ]
+  const inspirationTours = tours.length ? tours : fallbackInspirationTours
+  const visibleInspirationTours = Array.from(
+    { length: Math.min(3, inspirationTours.length) },
+    (_, offset) => inspirationTours[(inspirationIndex + offset) % inspirationTours.length]
+  )
+
+  function scrollToTours() {
+    document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   return (
     <div className="home-page">
@@ -118,42 +142,114 @@ export default function HomePage() {
       <header className="home-hero">
         <div className="login-overlay"></div>
         <div className="home-container hero-content">
-          <h1>Khám phá Việt Nam tuyệt đẹp</h1>
-          <p>Đặt tour du lịch trọn gói với giá tốt nhất. Hơn 100+ điểm đến hấp dẫn đang chờ bạn.</p>
+          <div className="hero-copy">
+            <span className="hero-kicker">Tour nội địa tuyển chọn 2026</span>
+            <h1>Khám phá Việt Nam theo cách nhẹ nhàng hơn</h1>
+            <p>Chọn tour trọn gói, xem lịch trình rõ ràng và đặt chỗ nhanh với những hành trình được TraveX chọn lọc.</p>
 
-          <div className="home-search glass">
-            <input
-              type="text"
-              placeholder="Bạn muốn đi đâu? (VD: Đà Lạt, Phú Quốc...)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <button className="btn-primary search-btn">Tìm kiếm</button>
+            <div className="home-search glass">
+              <input
+                type="text"
+                placeholder="Bạn muốn đi đâu? (VD: Đà Lạt, Phú Quốc...)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <button className="btn-primary search-btn" onClick={scrollToTours}>Tìm kiếm</button>
+            </div>
+
+            <div className="hero-actions">
+              <button className="hero-secondary-btn" onClick={() => navigate('/promotions')}>Xem ưu đãi hè</button>
+              <a href="#destinations">Khám phá điểm đến</a>
+            </div>
+
+            <div className="hero-stats" aria-label="Điểm nổi bật của TraveX">
+              <div>
+                <strong>{tours.length || '100+'}</strong>
+                <span>tour đang mở bán</span>
+              </div>
+              <div>
+                <strong>24/7</strong>
+                <span>hỗ trợ đặt tour</span>
+              </div>
+              <div>
+                <strong>4.8/5</strong>
+                <span>đánh giá trung bình</span>
+              </div>
+            </div>
           </div>
+
+          <aside className="hero-trip-card" aria-label="Tour gợi ý">
+            <span>Tour gợi ý tuần này</span>
+            <h2>Phú Quốc 3N2Đ</h2>
+            <p>Biển trong, resort ven bờ và lịch trình thư giãn cho gia đình.</p>
+            <button onClick={() => {
+              setSearchTerm('Phú Quốc')
+              scrollToTours()
+            }}>
+              Xem tour phù hợp
+            </button>
+          </aside>
         </div>
       </header>
 
       {/* ─── Promo Banner ─── */}
       <PromoBanner />
 
+      <section className="home-destinations home-container" id="destinations">
+        <div className="section-header section-header-left">
+          <span className="section-eyebrow">Điểm đến được quan tâm</span>
+          <h2>Lấy cảm hứng cho chuyến đi tiếp theo</h2>
+          <p>Các tour đang tự động chuyển lần lượt để bạn xem thêm lựa chọn mà không cần cuộn nhiều.</p>
+        </div>
+        <div className="destination-grid rotating-destination-grid">
+          {visibleInspirationTours.map((tour, index) => (
+            <article
+              className="destination-card"
+              key={`${tour.id}-${inspirationIndex}`}
+              onClick={() => {
+                if (!String(tour.id).startsWith('fallback')) {
+                  navigate(`/tours/${tour.id}`)
+                } else {
+                  setSearchTerm(tour.destination)
+                  scrollToTours()
+                }
+              }}
+            >
+              {tour.imageUrl ? (
+                <img src={tour.imageUrl} alt={tour.name} />
+              ) : (
+                <div className={`destination-fallback destination-fallback-${index + 1}`} />
+              )}
+              <div>
+                <span>{tour.durationDays || 3} ngày · {tour.destination}</span>
+                <h3>{tour.name}</h3>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* ─── Tour Section ─── */}
       <section className="home-tours home-container" id="tours">
         <div className="section-header">
+          <span className="section-eyebrow">Gợi ý cho bạn</span>
           <h2>Tour nổi bật</h2>
           <p>Những điểm đến được yêu thích nhất do TraveX đề xuất.</p>
         </div>
 
         {/* Category Tabs */}
-        <div className="category-tabs">
-          {TOUR_CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              className={`category-tab ${selectedCategory === cat ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="tour-toolbar">
+          <div className="category-tabs">
+            {TOUR_CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                className={`category-tab ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
           <div className="price-filter">
             <label>Tối đa: <strong>{formatVND(priceRange)}</strong></label>
             <input
@@ -223,6 +319,30 @@ export default function HomePage() {
             })}
           </div>
         )}
+      </section>
+
+      <section className="home-about" id="about">
+        <div className="home-container about-grid">
+          <div>
+            <span className="section-eyebrow">Vì sao chọn TraveX</span>
+            <h2>Đặt tour rõ ràng từ giá đến lịch trình</h2>
+            <p>Trang chủ mới nhấn mạnh vào thao tác tìm tour, xem ưu đãi và chọn điểm đến nhanh hơn. Các thông tin quan trọng được đưa lên trước để khách hàng không phải đoán bước tiếp theo.</p>
+          </div>
+          <div className="about-points">
+            <article>
+              <strong>Lịch trình minh bạch</strong>
+              <span>Thông tin thời lượng, điểm đến và giá được đặt ngay trên từng card.</span>
+            </article>
+            <article>
+              <strong>Ưu đãi dễ thấy</strong>
+              <span>Khuyến mãi và tour giảm giá có vị trí riêng, không lẫn trong nội dung phụ.</span>
+            </article>
+            <article>
+              <strong>Thao tác nhanh</strong>
+              <span>Tìm kiếm, lọc giá và chọn danh mục đều nằm gần danh sách tour.</span>
+            </article>
+          </div>
+        </div>
       </section>
 
       {/* ─── Footer ─── */}

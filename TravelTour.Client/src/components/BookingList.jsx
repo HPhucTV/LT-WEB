@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { bookingApi, scheduleApi, tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
@@ -6,6 +7,7 @@ import { useToast } from '../contexts/ToastContext'
 import { bookingStatusLabel, formatDate, formatVND, paymentStatusLabel } from '../utils/format'
 
 export default function BookingList() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { t, settings } = useSettings()
   const isCustomer = user?.role?.toLowerCase() === 'customer' || !user?.role
@@ -106,7 +108,11 @@ export default function BookingList() {
         toast.warn(payment.message || t('vnpayWaiting'))
         return
       }
-      window.location.href = payment.paymentUrl
+      if (payment.paymentUrl.startsWith('/')) {
+        navigate(payment.paymentUrl)
+      } else {
+        window.location.href = payment.paymentUrl
+      }
     } catch (err) {
       toast.error(err.message)
     }

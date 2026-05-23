@@ -1,0 +1,15 @@
+Chay database va Redis:
+cd "C:\Users\PC\Documents\Duy\LT WEB"
+docker compose up -d
+
+Chay backend API:
+cd "C:\Users\PC\Documents\Duy\LT WEB\TravelTour.Api"
+dotnet run --launch-profile http
+
+Chay frontend:
+cd "C:\Users\PC\Documents\Duy\LT WEB\TravelTour.Client"
+npm run dev -- --host 127.0.0.1
+
+Dia chi thuong dung:
+Backend: http://localhost:5141
+Frontend: http://localhost:5173

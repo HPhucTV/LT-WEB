@@ -60,7 +60,7 @@ const state = {
       price: 3200000, originalPrice: 3800000,
       maxGuests: 20, category: 'Khám phá',
       description: 'Trải nghiệm trekking qua ruộng bậc thang, homestay cùng đồng bào H\'Mông, chinh phục đỉnh Fansipan.',
-      imageUrl: 'https://images.unsplash.com/photo-1596422846543-7ec79435b021?w=800&q=80',
+      imageUrl: 'https://booking.muongthanh.com/upload_images/images/H%60/sa-pa-thi-tran-trong-suong.jpg',
       isActive: true
     },
     {

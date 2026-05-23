@@ -326,6 +326,33 @@ namespace TravelTour.Api.Migrations
                     b.ToTable("TourSchedules");
                 });
 
+            modelBuilder.Entity("TravelTour.Api.Models.TourFavorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TourId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TourId");
+
+                    b.HasIndex("UserId", "TourId")
+                        .IsUnique();
+
+                    b.ToTable("TourFavorites");
+                });
+
             modelBuilder.Entity("TravelTour.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -419,6 +446,25 @@ namespace TravelTour.Api.Migrations
                     b.Navigation("GuideUser");
 
                     b.Navigation("Tour");
+                });
+
+            modelBuilder.Entity("TravelTour.Api.Models.TourFavorite", b =>
+                {
+                    b.HasOne("TravelTour.Api.Models.Tour", "Tour")
+                        .WithMany()
+                        .HasForeignKey("TourId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TravelTour.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tour");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.Customer", b =>

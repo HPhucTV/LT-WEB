@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
@@ -5,38 +6,38 @@ import { SettingsProvider } from './contexts/SettingsContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
 /* ─── Public pages ─── */
-import HomePage from './components/HomePage'
-import TourDetails from './components/TourDetails'
-import LoginPage from './components/LoginPage'
+const HomePage = lazy(() => import('./components/HomePage'))
+const TourDetails = lazy(() => import('./components/TourDetails'))
+const LoginPage = lazy(() => import('./components/LoginPage'))
 
 /* ─── Admin pages ─── */
-import AdminLayout from './components/AdminLayout'
-import DashboardPage from './components/DashboardPage'
-import TourList from './components/TourList'
-import BookingList from './components/BookingList'
-import CustomerList from './components/CustomerList'
-import ReportPage from './components/ReportPage'
-import VnpayPage from './components/VnpayPage'
-import PaymentResultPage from './components/PaymentResultPage'
-import VnpayRedirectPage from './components/VnpayRedirectPage'
-import UsersPage from './components/UsersPage'
-import SettingsPage from './components/SettingsPage'
-import SummerCampaignPage from './components/SummerCampaignPage'
+const AdminLayout = lazy(() => import('./components/AdminLayout'))
+const DashboardPage = lazy(() => import('./components/DashboardPage'))
+const TourList = lazy(() => import('./components/TourList'))
+const BookingList = lazy(() => import('./components/BookingList'))
+const CustomerList = lazy(() => import('./components/CustomerList'))
+const ReportPage = lazy(() => import('./components/ReportPage'))
+const VnpayPage = lazy(() => import('./components/VnpayPage'))
+const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'))
+const VnpayRedirectPage = lazy(() => import('./components/VnpayRedirectPage'))
+const UsersPage = lazy(() => import('./components/UsersPage'))
+const SettingsPage = lazy(() => import('./components/SettingsPage'))
+const SummerCampaignPage = lazy(() => import('./components/SummerCampaignPage'))
 
 /* ─── Staff pages ─── */
-import StaffLayout from './components/staff/StaffLayout'
-import StaffDashboard from './components/staff/StaffDashboard'
-import StaffSchedule from './components/staff/StaffSchedule'
-import StaffAvailability from './components/staff/StaffAvailability'
-import StaffNotifications from './components/staff/StaffNotifications'
+const StaffLayout = lazy(() => import('./components/staff/StaffLayout'))
+const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard'))
+const StaffSchedule = lazy(() => import('./components/staff/StaffSchedule'))
+const StaffAvailability = lazy(() => import('./components/staff/StaffAvailability'))
+const StaffNotifications = lazy(() => import('./components/staff/StaffNotifications'))
 
 /* ─── Customer pages ─── */
-import CustomerLayout from './components/customer/CustomerLayout'
-import CustomerDashboard from './components/customer/CustomerDashboard'
-import CustomerFavorites from './components/customer/CustomerFavorites'
-import CustomerReviews from './components/customer/CustomerReviews'
-import CustomerNotifications from './components/customer/CustomerNotifications'
-import CustomerSupport from './components/customer/CustomerSupport'
+const CustomerLayout = lazy(() => import('./components/customer/CustomerLayout'))
+const CustomerDashboard = lazy(() => import('./components/customer/CustomerDashboard'))
+const CustomerFavorites = lazy(() => import('./components/customer/CustomerFavorites'))
+const CustomerReviews = lazy(() => import('./components/customer/CustomerReviews'))
+const CustomerNotifications = lazy(() => import('./components/customer/CustomerNotifications'))
+const CustomerSupport = lazy(() => import('./components/customer/CustomerSupport'))
 
 import './App.css'
 
@@ -46,7 +47,8 @@ function App() {
       <SettingsProvider>
         <ToastProvider>
           <BrowserRouter>
-            <Routes>
+            <Suspense fallback={<div className="route-loading">Đang tải...</div>}>
+              <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
             <Route path="/tours/:id" element={<TourDetails />} />
@@ -95,7 +97,8 @@ function App() {
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </ToastProvider>
       </SettingsProvider>

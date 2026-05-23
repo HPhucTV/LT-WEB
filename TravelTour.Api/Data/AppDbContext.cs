@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<GuideAvailability> GuideAvailabilities => Set<GuideAvailability>();
+    public DbSet<TourFavorite> TourFavorites => Set<TourFavorite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -91,6 +92,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(a => a.GuideUser)
                 .WithMany()
                 .HasForeignKey(a => a.GuideUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TourFavorite>(entity =>
+        {
+            entity.HasIndex(f => new { f.UserId, f.TourId }).IsUnique();
+            entity.HasIndex(f => f.TourId);
+            entity.HasOne(f => f.User)
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(f => f.Tour)
+                .WithMany()
+                .HasForeignKey(f => f.TourId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

@@ -157,7 +157,9 @@ export default function SummerCampaignPage({ audience = 'admin' }) {
                     <span className="price-original">{formatVND(tour.originalPrice)}</span>
                     <strong>{formatVND(tour.price)}</strong>
                   </div>
-                  {tour.promotionTitle && <p className="campaign-promo-title">{tour.promotionTitle}</p>}
+                  <p className={`campaign-promo-title ${tour.promotionTitle ? '' : 'campaign-promo-title-empty'}`}>
+                    {tour.promotionTitle || 'Không có ưu đãi riêng'}
+                  </p>
                   <button className="btn-primary full-width" onClick={() => navigate(`/tours/${tour.id}`)}>
                     {isPublic ? t('seeAndBook') : t('seeDetails')}
                   </button>
