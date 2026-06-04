@@ -183,6 +183,7 @@ public class TourService(
             EndDate = request.EndDate,
             AvailableSeats = request.AvailableSeats,
             Status = request.Status.Trim(),
+            ScheduleType = "Shared",
             GuideUserId = guide?.Id,
             GuideName = guide?.FullName ?? (string.IsNullOrWhiteSpace(request.GuideName) ? null : request.GuideName.Trim()),
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim()
@@ -193,7 +194,7 @@ public class TourService(
 
         return ServiceResult<ScheduleResponse>.Success(new ScheduleResponse(
             schedule.Id, schedule.TourId, tour.Name, schedule.StartDate, schedule.EndDate,
-            schedule.AvailableSeats, schedule.Status, schedule.GuideUserId, schedule.GuideName,
+            schedule.AvailableSeats, schedule.Status, schedule.ScheduleType, schedule.GuideUserId, schedule.GuideName,
             schedule.Note, 0));
     }
 
@@ -207,6 +208,7 @@ public class TourService(
             schedule.EndDate,
             schedule.AvailableSeats,
             schedule.Status,
+            schedule.ScheduleType,
             schedule.GuideUserId,
             schedule.GuideName,
             schedule.Note,

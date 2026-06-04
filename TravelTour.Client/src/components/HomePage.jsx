@@ -581,15 +581,6 @@ export default function HomePage() {
               </ul>
             </div>
             <div className="footer-col">
-              <h4>Hỗ trợ</h4>
-              <ul>
-                <li><a href="#">Câu hỏi thường gặp</a></li>
-                <li><a href="#">Chính sách hoàn tiền</a></li>
-                <li><a href="#">Liên hệ</a></li>
-                <li><a href="#">Hướng dẫn đặt tour</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
               <h4>Liên hệ</h4>
               <ul>
                 <li>📞 1900 1234</li>

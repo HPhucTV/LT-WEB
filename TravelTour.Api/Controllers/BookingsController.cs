@@ -37,7 +37,19 @@ public class BookingsController(BookingService bookingService) : ControllerBase
             return NotFound();
         }
 
-        return Ok(result.Value);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
+    }
+
+    [HttpPut("{id:int}/assign-guide")]
+    public async Task<IActionResult> AssignGuide(int id, AssignGuideRequest request)
+    {
+        var result = await bookingService.AssignGuideAsync(id, request);
+        if (result.IsNotFound)
+        {
+            return NotFound();
+        }
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
     [HttpDelete("{id:int}")]

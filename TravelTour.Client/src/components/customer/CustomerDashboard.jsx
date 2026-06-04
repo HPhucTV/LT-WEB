@@ -1,6 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import { formatVND } from '../../utils/format'
+import { calculateRewardPoints, getAvailableRewardPoints, loadRewardVouchers } from '../../utils/rewards'
 
 const QUICK_ACTIONS = [
   { icon: '🔍', label: 'Tìm tour', to: '/customer/tours' },
@@ -13,8 +15,14 @@ const QUICK_ACTIONS = [
 export default function CustomerDashboard() {
   const navigate = useNavigate()
   const { bookings = [], tours = [] } = useOutletContext()
+  const { user } = useAuth()
+  const [rewardVouchers, setRewardVouchers] = useState(() => loadRewardVouchers(user))
 
   const today = useMemo(() => startOfDay(new Date()), [])
+
+  useEffect(() => {
+    setRewardVouchers(loadRewardVouchers(user))
+  }, [user])
 
   const upcomingTrips = useMemo(() => {
     return bookings
@@ -33,7 +41,7 @@ export default function CustomerDashboard() {
       upcoming: upcomingTrips.length,
       totalOrders: bookings.length,
       totalSpent,
-      points: Math.floor(totalSpent / 100000) + completed * 20,
+      points: calculateRewardPoints(bookings),
       pending: bookings.filter(booking => booking.status === 'Pending').length,
       confirmed: bookings.filter(booking => booking.status === 'Confirmed' && startOfDay(booking.startDate) >= today).length,
       active: bookings.filter(booking => booking.status !== 'Cancelled' && isTripActive(booking.startDate, today)).length,
@@ -41,6 +49,8 @@ export default function CustomerDashboard() {
       cancelled: bookings.filter(booking => booking.status === 'Cancelled').length,
     }
   }, [bookings, today, upcomingTrips.length])
+
+  const availableRewardPoints = getAvailableRewardPoints(stats.points, rewardVouchers)
 
   const suggestedTour = useMemo(() => {
     const activeTours = tours.filter(tour => tour.isActive)
@@ -127,8 +137,8 @@ export default function CustomerDashboard() {
             </div>
             <div className="cust-promo-card gray">
               <span>Ưu tiên khách thân thiết</span>
-              <strong>Dùng {stats.points || 0} điểm để đổi ưu đãi</strong>
-              <Link to="/customer/tours">Chọn tour →</Link>
+              <strong>Dùng {availableRewardPoints || 0} điểm để đổi voucher</strong>
+              <Link to="/customer/rewards">Đổi ngay →</Link>
             </div>
           </div>
         </div>
@@ -144,7 +154,7 @@ export default function CustomerDashboard() {
             <OverviewStat icon="💼" value={stats.upcoming} label="Tour sắp tới" color="#3b82f6" bg="#eff6ff" />
             <OverviewStat icon="📦" value={stats.totalOrders} label="Đơn hàng" color="#10b981" bg="#ecfdf5" />
             <OverviewStat icon="💰" value={formatVND(stats.totalSpent)} label="Tổng chi tiêu" color="#f59e0b" bg="#fffbeb" />
-            <OverviewStat icon="⭐" value={stats.points} label="Điểm thưởng" color="#8b5cf6" bg="#f5f3ff" />
+            <OverviewStat icon="⭐" value={availableRewardPoints} label="Điểm thưởng" color="#8b5cf6" bg="#f5f3ff" />
           </div>
         </div>
 

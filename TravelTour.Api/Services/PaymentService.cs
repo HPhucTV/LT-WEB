@@ -20,6 +20,11 @@ public class PaymentService(AppDbContext db, VnpayPaymentService vnpayPaymentSer
         if (booking.Status == "Cancelled") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking đã hủy, không thể thanh toán.");
         if (booking.PaymentStatus == "Paid") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking này đã được thanh toán.");
 
+        if (booking.BookingType == "PrivateGroup" && booking.Status != "Confirmed")
+        {
+            return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking đoàn cần admin phân lịch và xác nhận trước khi thanh toán.");
+        }
+
         var payment = vnpayPaymentService.CreatePaymentUrl(booking, ipAddress);
 
         booking.PaymentMethod = "VNPay";

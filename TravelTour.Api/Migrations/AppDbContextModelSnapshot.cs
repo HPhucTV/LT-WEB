@@ -94,6 +94,13 @@ namespace TravelTour.Api.Migrations
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("VoucherCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("VoucherDiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("TourScheduleId")
                         .HasColumnType("integer");
 
@@ -329,12 +336,20 @@ namespace TravelTour.Api.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("ScheduleType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Shared");
+
                     b.Property<int>("TourId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("GuideUserId");
+
+                    b.HasIndex("ScheduleType");
 
                     b.HasIndex("TourId");
 

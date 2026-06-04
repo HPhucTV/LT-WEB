@@ -16,6 +16,7 @@ export default function TourDetails() {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedSchedule, setSelectedSchedule] = useState('')
+  const [requestedStartDate, setRequestedStartDate] = useState('')
   const [bookingType, setBookingType] = useState('Shared')
   const [guestCount, setGuestCount] = useState(1)
   const [rating, setRating] = useState(5)
@@ -31,7 +32,7 @@ export default function TourDetails() {
           reviewApi.listByTour(id),
         ])
         setTour(tourData)
-        setSchedules(scheduleData.filter(schedule => schedule.status === 'Open'))
+        setSchedules(scheduleData.filter(schedule => schedule.status === 'Open' && schedule.scheduleType !== 'PrivateGroup'))
         setReviews(reviewData)
       } catch {
         toast.error('Không thể tải thông tin tour')
@@ -50,10 +51,24 @@ export default function TourDetails() {
     }
     const query = new URLSearchParams({
       tourId: String(id),
-      scheduleId: String(selectedSchedule),
       guestCount: String(guestCount),
       bookingType,
     })
+
+    if (bookingType === 'PrivateGroup') {
+      if (!requestedStartDate) {
+        toast.error('Vui lòng chọn ngày khởi hành mong muốn.')
+        return
+      }
+      query.set('requestedStartDate', requestedStartDate)
+    } else {
+      if (!selectedSchedule) {
+        toast.error('Vui lòng chọn lịch khởi hành.')
+        return
+      }
+      query.set('scheduleId', String(selectedSchedule))
+    }
+
     navigate(`/checkout?${query.toString()}`)
   }
 
@@ -85,6 +100,19 @@ export default function TourDetails() {
     pct: reviews.length ? Math.round((reviews.filter(review => review.rating === star).length / reviews.length) * 100) : 0,
   }))
   const hasDiscount = tour.originalPrice && tour.originalPrice > tour.price
+  const minGroupGuests = tour.minGroupGuests || 10
+  const todayDate = new Date().toISOString().slice(0, 10)
+  const canShowTotal = bookingType === 'PrivateGroup' ? requestedStartDate : selectedSchedule
+
+  function handleBookingTypeChange(value) {
+    setBookingType(value)
+    if (value === 'PrivateGroup' && Number(guestCount) < minGroupGuests) {
+      setGuestCount(minGroupGuests)
+    }
+    if (value === 'Shared' && Number(guestCount) < 1) {
+      setGuestCount(1)
+    }
+  }
 
   return (
     <div className="tour-details-page">
@@ -193,12 +221,16 @@ export default function TourDetails() {
               </div>
               <h3>Đặt tour ngay</h3>
               <form onSubmit={handleBook}>
-                <div className="booking-field"><label>Lịch khởi hành</label><select required value={selectedSchedule} onChange={event => setSelectedSchedule(event.target.value)}><option value="">-- Chọn lịch --</option>{schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - Còn {schedule.availableSeats} chỗ</option>)}</select></div>
-                <div className="booking-field"><label>Hình thức</label><select value={bookingType} onChange={event => setBookingType(event.target.value)}><option value="Shared">Đi lẻ / tour ghép</option><option value="PrivateGroup">Đi theo đoàn</option></select></div>
-                <div className="booking-field"><label>Số khách</label><input type="number" min={bookingType === 'PrivateGroup' ? (tour.minGroupGuests || 10) : 1} required value={guestCount} onChange={event => setGuestCount(event.target.value)} /></div>
-                {bookingType === 'PrivateGroup' && <p className="booking-hint">Đi theo đoàn cần ít nhất {tour.minGroupGuests || 10} khách. Tour ghép có thể đặt lẻ theo lịch đã chọn.</p>}
-                {selectedSchedule && <div className="booking-total"><span>Tạm tính:</span><strong>{formatVND(tour.price * guestCount)}</strong></div>}
-                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit">Tiếp tục thanh toán</button>}
+                <div className="booking-field"><label>Hình thức</label><select value={bookingType} onChange={event => handleBookingTypeChange(event.target.value)}><option value="Shared">Đi lẻ / tour ghép</option><option value="PrivateGroup">Đi theo đoàn</option></select></div>
+                {bookingType === 'PrivateGroup' ? (
+                  <div className="booking-field"><label>Ngày khởi hành mong muốn</label><input type="date" min={todayDate} required value={requestedStartDate} onChange={event => setRequestedStartDate(event.target.value)} /></div>
+                ) : (
+                  <div className="booking-field"><label>Lịch khởi hành</label><select required value={selectedSchedule} onChange={event => setSelectedSchedule(event.target.value)}><option value="">-- Chọn lịch --</option>{schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - Còn {schedule.availableSeats} chỗ</option>)}</select></div>
+                )}
+                <div className="booking-field"><label>Số khách</label><input type="number" min={bookingType === 'PrivateGroup' ? minGroupGuests : 1} max={tour.maxGuests || undefined} required value={guestCount} onChange={event => setGuestCount(event.target.value)} /></div>
+                {bookingType === 'PrivateGroup' && <p className="booking-hint">Đi theo đoàn cần ít nhất {minGroupGuests} khách. Bạn chọn ngày riêng, TraveX sẽ phân nhân viên và xác nhận trước khi thanh toán.</p>}
+                {canShowTotal && <div className="booking-total"><span>Tạm tính:</span><strong>{formatVND(tour.price * Number(guestCount || 0))}</strong></div>}
+                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit">{bookingType === 'PrivateGroup' ? 'Gửi yêu cầu đặt đoàn' : 'Tiếp tục thanh toán'}</button>}
               </form>
             </div>
           </aside>

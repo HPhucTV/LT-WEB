@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bookingApi, scheduleApi, tourApi } from '../api'
+import { bookingApi, guideApi, scheduleApi, tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
@@ -19,8 +19,22 @@ export default function BookingList() {
   const [schedules, setSchedules] = useState([])
   const [selectedTourId, setSelectedTourId] = useState('')
   const [bookingType, setBookingType] = useState('Shared')
+  const [requestedStartDate, setRequestedStartDate] = useState('')
+  const [assignBooking, setAssignBooking] = useState(null)
+  const [availableGuides, setAvailableGuides] = useState([])
 
   useEffect(() => { loadBookings() }, [])
+
+  useEffect(() => {
+    if (!assignBooking) {
+      setAvailableGuides([])
+      return
+    }
+
+    guideApi.available(assignBooking.startDate, assignBooking.endDate || assignBooking.startDate)
+      .then(data => setAvailableGuides(data || []))
+      .catch(() => setAvailableGuides([]))
+  }, [assignBooking])
 
   function bookingLabel(status) {
     if (settings.language === 'vi') return bookingStatusLabel(status)
@@ -28,6 +42,12 @@ export default function BookingList() {
     if (status === 'Confirmed') return t('confirmed')
     if (status === 'Cancelled') return t('cancelled')
     return status
+  }
+
+  function bookingDisplayLabel(booking) {
+    if (booking.bookingType === 'PrivateGroup' && booking.status === 'Pending') return 'Chờ phân lịch'
+    if (booking.bookingType === 'PrivateGroup' && booking.status === 'Confirmed') return 'Đã phân lịch'
+    return bookingLabel(booking.status)
   }
 
   function paymentLabel(status) {
@@ -59,6 +79,7 @@ export default function BookingList() {
       setSchedules([])
       setSelectedTourId('')
       setBookingType('Shared')
+      setRequestedStartDate('')
       setFormOpen(true)
     } catch (err) {
       toast.error(err.message)
@@ -71,7 +92,7 @@ export default function BookingList() {
       setSchedules([])
       return
     }
-    try { setSchedules((await scheduleApi.listByTour(tourId)).filter(schedule => schedule.status === 'Open')) }
+    try { setSchedules((await scheduleApi.listByTour(tourId)).filter(schedule => schedule.status === 'Open' && schedule.scheduleType !== 'PrivateGroup')) }
     catch { setSchedules([]) }
   }
 
@@ -79,14 +100,19 @@ export default function BookingList() {
     event.preventDefault()
     const form = new FormData(event.target)
     try {
-      await bookingApi.create({
-        tourScheduleId: Number(form.get('scheduleId')),
+      const nextBookingType = form.get('bookingType')
+      const payload = {
         customerName: form.get('customerName'),
         customerPhone: form.get('customerPhone'),
         customerEmail: form.get('customerEmail'),
         guestCount: Number(form.get('guestCount')),
-        bookingType: form.get('bookingType'),
-      })
+        bookingType: nextBookingType,
+        ...(nextBookingType === 'PrivateGroup'
+          ? { tourId: Number(selectedTourId), requestedStartDate: form.get('requestedStartDate') }
+          : { tourScheduleId: Number(form.get('scheduleId')) }),
+      }
+
+      await bookingApi.create(payload)
       setFormOpen(false)
       loadBookings()
       toast.success(t('bookTour'))
@@ -100,6 +126,31 @@ export default function BookingList() {
       await bookingApi.updateStatus(id, status)
       loadBookings()
       toast.success(t('update'))
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
+  function handleBookingTypeChange(value) {
+    setBookingType(value)
+    if (value === 'PrivateGroup') {
+      setSchedules([])
+    } else if (selectedTourId) {
+      handleTourChange(selectedTourId)
+    }
+  }
+
+  async function handleAssignGuide(event) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const guideUserId = Number(form.get('guideUserId'))
+    if (!assignBooking || !guideUserId) return
+
+    try {
+      await bookingApi.assignGuide(assignBooking.id, guideUserId)
+      setAssignBooking(null)
+      loadBookings()
+      toast.success('Đã phân nhân viên cho booking đoàn.')
     } catch (err) {
       toast.error(err.message)
     }
@@ -137,7 +188,14 @@ export default function BookingList() {
     return type === 'PrivateGroup' ? 'Đi theo đoàn' : 'Tour ghép'
   }
 
+  function canPay(booking) {
+    if (booking.paymentStatus === 'Paid' || booking.status === 'Cancelled') return false
+    if (booking.bookingType === 'PrivateGroup') return booking.status === 'Confirmed'
+    return true
+  }
+
   const selectedTour = tours.find(tour => String(tour.id) === String(selectedTourId))
+  const todayDate = new Date().toISOString().slice(0, 10)
 
   return (
     <>
@@ -160,27 +218,68 @@ export default function BookingList() {
                   {tours.map(tour => <option key={tour.id} value={tour.id}>{tour.name} ({tour.code})</option>)}
                 </select>
               </label>
-              <label className="span-2">{t('chooseSchedule')}
-                <select name="scheduleId" required>
-                  <option value="">{t('chooseSchedulePlaceholder')}</option>
-                  {schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - {schedule.availableSeats} {t('seatsLeft')}</option>)}
-                </select>
-              </label>
               <label>Hình thức
-                <select name="bookingType" value={bookingType} onChange={event => setBookingType(event.target.value)}>
+                <select name="bookingType" value={bookingType} onChange={event => handleBookingTypeChange(event.target.value)}>
                   <option value="Shared">Đi lẻ / tour ghép</option>
                   <option value="PrivateGroup">Đi theo đoàn</option>
                 </select>
               </label>
+              {bookingType === 'PrivateGroup' ? (
+                <label>Ngày khởi hành mong muốn
+                  <input name="requestedStartDate" type="date" min={todayDate} required value={requestedStartDate} onChange={event => setRequestedStartDate(event.target.value)} />
+                </label>
+              ) : (
+                <label>{t('chooseSchedule')}
+                  <select name="scheduleId" required>
+                    <option value="">{t('chooseSchedulePlaceholder')}</option>
+                    {schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - {schedule.availableSeats} {t('seatsLeft')}</option>)}
+                  </select>
+                </label>
+              )}
               <label>{t('customerName')}<input name="customerName" required /></label>
               <label>{t('phone')}<input name="customerPhone" required /></label>
               <label>Email<input name="customerEmail" type="email" required /></label>
-              <label>{t('guestCount')}<input name="guestCount" type="number" min={bookingType === 'PrivateGroup' ? (selectedTour?.minGroupGuests || 10) : 1} defaultValue="1" required /></label>
-              {bookingType === 'PrivateGroup' && <p className="booking-hint span-2">Đi theo đoàn cần ít nhất {selectedTour?.minGroupGuests || 10} khách. Tour ghép có thể đặt lẻ theo lịch đã chọn.</p>}
+              <label>{t('guestCount')}<input name="guestCount" type="number" min={bookingType === 'PrivateGroup' ? (selectedTour?.minGroupGuests || 10) : 1} max={selectedTour?.maxGuests || undefined} defaultValue="1" required /></label>
+              {bookingType === 'PrivateGroup' && <p className="booking-hint span-2">Đi theo đoàn cần ít nhất {selectedTour?.minGroupGuests || 10} khách. Booking đoàn sẽ chờ admin phân nhân viên trước khi thanh toán.</p>}
             </div>
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>{t('cancel')}</button>
               <button type="submit" className="btn-primary">{t('bookTour')}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {assignBooking && (
+        <div className="modal-overlay" onClick={() => setAssignBooking(null)}>
+          <form className="modal-body" onClick={event => event.stopPropagation()} onSubmit={handleAssignGuide}>
+            <h2>Phân nhân viên cho đoàn</h2>
+            <div className="form-grid">
+              <label className="span-2">Tour
+                <input value={assignBooking.tourName} disabled />
+              </label>
+              <label>Ngày đi
+                <input value={`${formatDate(assignBooking.startDate)} - ${formatDate(assignBooking.endDate || assignBooking.startDate)}`} disabled />
+              </label>
+              <label>Số khách
+                <input value={`${assignBooking.guestCount} khách`} disabled />
+              </label>
+              <label className="span-2">Nhân viên / hướng dẫn viên
+                <select name="guideUserId" required defaultValue={assignBooking.guideUserId || ''}>
+                  <option value="">Chọn nhân viên rảnh</option>
+                  {assignBooking.guideUserId && !availableGuides.some(guide => guide.id === assignBooking.guideUserId) && (
+                    <option value={assignBooking.guideUserId}>{assignBooking.guideName || 'Nhân viên hiện tại'}</option>
+                  )}
+                  {availableGuides.map(guide => (
+                    <option key={guide.id} value={guide.id}>{guide.fullName}{guide.availabilityNote ? ` - ${guide.availabilityNote}` : ''}</option>
+                  ))}
+                </select>
+                <small>Chỉ hiển thị nhân viên đã khai báo rảnh và chưa bị trùng lịch.</small>
+              </label>
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setAssignBooking(null)}>{t('cancel')}</button>
+              <button type="submit" className="btn-primary">Xác nhận phân lịch</button>
             </div>
           </form>
         </div>
@@ -204,15 +303,21 @@ export default function BookingList() {
                 <tr key={booking.id}>
                   <td>{booking.id}</td>
                   <td>{booking.tourName}</td>
-                  <td>{formatDate(booking.startDate)}</td>
-                  <td>{bookingTypeLabel(booking.bookingType)}</td>
+                  <td>
+                    <div className="booking-date-cell">
+                      <strong>{formatDate(booking.startDate)}</strong>
+                      {booking.endDate && booking.endDate !== booking.startDate && <small>đến {formatDate(booking.endDate)}</small>}
+                      {booking.guideName && <small>NV: {booking.guideName}</small>}
+                    </div>
+                  </td>
+                  <td><span className={`booking-type-badge ${(booking.bookingType || '').toLowerCase()}`}>{bookingTypeLabel(booking.bookingType)}</span></td>
                   <td>{booking.customerName}</td>
                   <td>{booking.customerPhone}</td>
                   <td>{booking.guestCount}</td>
                   <td>{formatVND(booking.totalAmount)}</td>
                   <td>
                     {isCustomer ? (
-                      <span className={`status-badge ${(booking.status || '').toLowerCase()}`}>{bookingLabel(booking.status)}</span>
+                      <span className={`status-badge ${(booking.status || '').toLowerCase()}`}>{bookingDisplayLabel(booking)}</span>
                     ) : (
                       <select className={`status-select ${(booking.status || '').toLowerCase()}`} value={booking.status} onChange={event => handleStatusChange(booking.id, event.target.value)}>
                         <option value="Pending">{t('confirmPending')}</option>
@@ -223,8 +328,13 @@ export default function BookingList() {
                   </td>
                   <td><span className={`payment-badge ${(booking.paymentStatus || '').toLowerCase()}`}>{paymentLabel(booking.paymentStatus)}</span></td>
                   <td className="row-actions">
-                    {booking.paymentStatus !== 'Paid' && booking.status !== 'Cancelled' && (
+                    {canPay(booking) && (
                       <button className="btn-sm btn-vnpay" onClick={() => handleVnpayPayment(booking.id)}>VNPay</button>
+                    )}
+                    {!isCustomer && booking.bookingType === 'PrivateGroup' && booking.status !== 'Cancelled' && (
+                      <button className="btn-sm" onClick={() => setAssignBooking(booking)}>
+                        {booking.guideName ? 'Đổi nhân viên' : 'Phân nhân viên'}
+                      </button>
                     )}
                     {!isCustomer && <button className="btn-sm btn-danger" onClick={() => handleDelete(booking.id)}>{t('delete')}</button>}
                   </td>

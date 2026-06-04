@@ -527,6 +527,9 @@
 .status-badge.inactive { background: #fef2f2; color: #dc2626; }
 .status-badge.warning { background: #fef3c7; color: #d97706; }
 .status-badge.neutral { background: #e0f2fe; color: #0369a1; }
+.status-badge.pending { background: #fef3c7; color: #d97706; }
+.status-badge.confirmed { background: #dcfce7; color: #16a34a; }
+.status-badge.cancelled { background: #fef2f2; color: #dc2626; }
 
 /* Recent Items */
 .recent-list {
@@ -1520,22 +1523,6 @@
   display: grid; place-items: center; cursor: pointer;
 }
 
-.cust-icon-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: 1px solid #f1f5f9;
-  background: #fff;
-  color: #64748b;
-  display: grid; place-items: center;
-  cursor: pointer;
-  position: relative;
-}
-.cust-icon-btn:hover { background: #f8fafc; color: #1e293b; }
-.cust-notification-badge {
-  position: absolute; top: 10px; right: 12px;
-  width: 8px; height: 8px; border-radius: 50%; background: #ef4444; border: 2px solid #fff;
-}
-
 /* ─── Dashboard Grid ─── */
 .cust-dash-grid {
   display: grid;
@@ -1545,6 +1532,142 @@
 
 .cust-dash-main { display: flex; flex-direction: column; gap: 32px; }
 .cust-dash-side { display: flex; flex-direction: column; gap: 32px; }
+
+.customer-rewards-page {
+  display: grid;
+  gap: 24px;
+}
+
+.customer-rewards-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  padding: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1f2937, #5b5ff7 52%, #0f766e);
+  color: #fff;
+}
+
+.customer-rewards-hero span {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+}
+
+.customer-rewards-hero h2 {
+  margin: 8px 0;
+  font-size: 32px;
+}
+
+.customer-rewards-hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.reward-points-box {
+  min-width: 180px;
+  padding: 20px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.reward-points-box small,
+.reward-points-box span {
+  display: block;
+}
+
+.reward-points-box strong {
+  display: block;
+  font-size: 44px;
+  line-height: 1;
+  margin: 8px 0;
+}
+
+.reward-voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.reward-voucher-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.reward-voucher-code {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.reward-voucher-card h3 {
+  margin: 12px 0 6px;
+  color: #0b1535;
+}
+
+.reward-voucher-card p {
+  margin: 0;
+  color: #64748b;
+}
+
+.reward-voucher-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #64748b;
+}
+
+.reward-voucher-meta strong {
+  color: #ef4444;
+  font-size: 20px;
+}
+
+.reward-wallet-card {
+  display: grid;
+  gap: 12px;
+}
+
+.reward-wallet-list {
+  display: grid;
+  gap: 10px;
+}
+
+.reward-wallet-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.reward-wallet-item span {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.reward-wallet-item b {
+  color: #ef4444;
+}
+
+.reward-wallet-item.used {
+  opacity: 0.58;
+}
 
 /* Hero Banner */
 .cust-hero {
@@ -2024,6 +2147,33 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
   background: #dbeafe;
 }
 
+.booking-date-cell {
+  display: grid;
+  gap: 3px;
+}
+
+.booking-date-cell small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.booking-type-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.booking-type-badge.privategroup {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 .payment-result-page {
   min-height: 100vh;
   display: grid;
@@ -2085,8 +2235,7 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
   border-bottom: 1px solid #e5e7eb;
 }
 
-.checkout-brand,
-.checkout-help {
+.checkout-brand {
   border: none;
   background: transparent;
   cursor: pointer;
@@ -2109,11 +2258,6 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
 
 .checkout-brand strong {
   color: #0f2b4a;
-}
-
-.checkout-help {
-  color: #111827;
-  font-weight: 700;
 }
 
 .checkout-steps {
@@ -2324,6 +2468,60 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
 .checkout-offer-row strong {
   color: #8b8b94;
   font-weight: 600;
+}
+
+.checkout-voucher-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.checkout-voucher-empty button {
+  border: none;
+  background: transparent;
+  color: #5b5ff7;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.checkout-voucher-list {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-voucher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  text-align: left;
+}
+
+.checkout-voucher-item.active {
+  border-color: #5b5ff7;
+  background: #eef2ff;
+}
+
+.checkout-voucher-item small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.checkout-voucher-item b {
+  color: #ef4444;
 }
 
 .checkout-consent {
@@ -4627,7 +4825,7 @@ tbody tr:hover {
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 40px;
   padding-bottom: 40px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -5808,6 +6006,10 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .reward-voucher-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .cust-dash-side {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5819,6 +6021,15 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+  .customer-rewards-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reward-voucher-grid {
+    grid-template-columns: 1fr;
+  }
+
   .cust-topbar {
     align-items: stretch;
     flex-direction: column;
@@ -6166,8 +6377,7 @@ tbody tr:hover {
 :root.theme-dark .tour-card:hover,
 :root.theme-dark .campaign-card:hover,
 :root.theme-dark .dash-metric:hover,
-:root.theme-dark .topbar-icon-btn:hover,
-:root.theme-dark .cust-icon-btn:hover {
+:root.theme-dark .topbar-icon-btn:hover {
   background: #162033;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32);
 }

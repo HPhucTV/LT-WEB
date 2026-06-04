@@ -137,6 +137,8 @@ export const bookingApi = {
   create: (data) => request('/bookings', { method: 'POST', body: JSON.stringify(data) }),
   updateStatus: (id, status) =>
     request(`/bookings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  assignGuide: (id, guideUserId) =>
+    request(`/bookings/${id}/assign-guide`, { method: 'PUT', body: JSON.stringify({ guideUserId }) }),
   payWithVnpay: (id) => request(`/payments/vnpay/bookings/${id}`, { method: 'POST' }),
   remove: (id) => request(`/bookings/${id}`, { method: 'DELETE' }),
 }

@@ -31,9 +31,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<TourSchedule>(entity =>
         {
             entity.Property(s => s.Status).HasMaxLength(40);
+            entity.Property(s => s.ScheduleType).HasMaxLength(30).HasDefaultValue("Shared");
             entity.Property(s => s.GuideName).HasMaxLength(120);
             entity.Property(s => s.Note).HasMaxLength(500);
             entity.HasIndex(s => s.TourId);
+            entity.HasIndex(s => s.ScheduleType);
             entity.HasIndex(s => s.GuideUserId);
             entity.HasOne(s => s.GuideUser)
                 .WithMany()
@@ -47,6 +49,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(b => b.CustomerPhone).HasMaxLength(30);
             entity.Property(b => b.CustomerEmail).HasMaxLength(120).HasDefaultValue("");
             entity.Property(b => b.TotalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(b => b.VoucherCode).HasMaxLength(40);
+            entity.Property(b => b.VoucherDiscountAmount).HasColumnType("decimal(18,2)");
             entity.Property(b => b.BookingType).HasMaxLength(30).HasDefaultValue("Shared");
             entity.Property(b => b.Status).HasMaxLength(40);
             entity.Property(b => b.PaymentMethod).HasMaxLength(30);

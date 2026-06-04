@@ -4,6 +4,7 @@ import { bookingApi, scheduleApi, tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { formatDate, formatVND } from '../utils/format'
+import { getUnusedRewardVouchers, loadRewardVouchers, markRewardVoucherUsed } from '../utils/rewards'
 import travexLogo from '../assets/travex-logo.svg'
 
 function splitFullName(name = '') {
@@ -19,6 +20,12 @@ function isValidEmail(value) {
   return atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < trimmed.length - 1
 }
 
+function addDaysToDateOnly(value, days) {
+  const date = new Date(`${value}T00:00:00`)
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 export default function CheckoutPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -30,6 +37,7 @@ export default function CheckoutPage() {
   const scheduleId = Number(params.get('scheduleId'))
   const guestCount = Math.max(1, Number(params.get('guestCount') || 1))
   const bookingType = params.get('bookingType') === 'PrivateGroup' ? 'PrivateGroup' : 'Shared'
+  const requestedStartDate = params.get('requestedStartDate') || ''
 
   const [tour, setTour] = useState(null)
   const [schedule, setSchedule] = useState(null)
@@ -38,6 +46,9 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [pendingBooking, setPendingBooking] = useState(null)
+  const [groupRequestSuccess, setGroupRequestSuccess] = useState(null)
+  const [rewardVouchers, setRewardVouchers] = useState(() => loadRewardVouchers(user))
+  const [selectedVoucherId, setSelectedVoucherId] = useState('')
   const [newsletter, setNewsletter] = useState(false)
   const [contact, setContact] = useState({
     lastName: initialName.lastName,
@@ -56,25 +67,54 @@ export default function CheckoutPage() {
   }, [initialName])
 
   useEffect(() => {
+    setRewardVouchers(loadRewardVouchers(user))
+  }, [user])
+
+  useEffect(() => {
     let cancelled = false
 
     async function loadCheckout() {
-      if (!tourId || !scheduleId || !guestCount) {
+      if (!tourId || !guestCount || (bookingType === 'Shared' && !scheduleId) || (bookingType === 'PrivateGroup' && !requestedStartDate)) {
         setPageError('Thiếu thông tin đơn hàng. Vui lòng chọn lại tour.')
         setLoading(false)
         return
       }
 
       try {
-        const [tourData, schedules] = await Promise.all([
-          tourApi.get(tourId),
-          scheduleApi.listByTour(tourId),
-        ])
+        const tourData = await tourApi.get(tourId)
+        if (cancelled) return
+
+        if (bookingType === 'PrivateGroup') {
+          const minGroupGuests = tourData.minGroupGuests || 10
+          if (guestCount < minGroupGuests) {
+            setPageError(`Đi theo đoàn cần ít nhất ${minGroupGuests} khách cho tour này.`)
+            return
+          }
+          if (tourData.maxGuests && guestCount > tourData.maxGuests) {
+            setPageError(`Tour này chỉ nhận tối đa ${tourData.maxGuests} khách cho một đoàn.`)
+            return
+          }
+          setTour(tourData)
+          setSchedule({
+            id: null,
+            startDate: requestedStartDate,
+            endDate: addDaysToDateOnly(requestedStartDate, Math.max(0, (tourData.durationDays || 1) - 1)),
+            status: 'Pending',
+            scheduleType: 'PrivateGroup',
+          })
+          return
+        }
+
+        const schedules = await scheduleApi.listByTour(tourId)
         if (cancelled) return
 
         const selectedSchedule = (schedules || []).find(item => Number(item.id) === scheduleId)
         if (!selectedSchedule) {
           setPageError('Không tìm thấy lịch khởi hành đã chọn.')
+          return
+        }
+        if (selectedSchedule.scheduleType === 'PrivateGroup') {
+          setPageError('Lịch này không dành cho tour ghép.')
           return
         }
         if (selectedSchedule.status !== 'Open') {
@@ -97,11 +137,18 @@ export default function CheckoutPage() {
 
     loadCheckout()
     return () => { cancelled = true }
-  }, [tourId, scheduleId, guestCount])
+  }, [tourId, scheduleId, guestCount, bookingType, requestedStartDate])
 
   const totalAmount = tour ? tour.price * guestCount : 0
-  const rewardAmount = Math.max(1000, Math.round(totalAmount * 0.001))
+  const availableVouchers = getUnusedRewardVouchers(rewardVouchers)
+  const selectedVoucher = availableVouchers.find(voucher => voucher.instanceId === selectedVoucherId) || null
+  const voucherDiscount = selectedVoucher ? Math.min(Number(selectedVoucher.discountAmount || 0), totalAmount) : 0
+  const payableAmount = Math.max(0, totalAmount - voucherDiscount)
+  const rewardAmount = Math.max(1000, Math.round(payableAmount * 0.001))
   const bookingTypeLabel = bookingType === 'PrivateGroup' ? 'Đi theo đoàn' : 'Đi lẻ / tour ghép'
+  const isPrivateGroup = bookingType === 'PrivateGroup'
+  const departureStartDate = schedule?.startDate || requestedStartDate
+  const departureEndDate = schedule?.endDate || departureStartDate
 
   function updateContact(field, value) {
     setContact(prev => ({ ...prev, [field]: value }))
@@ -130,15 +177,30 @@ export default function CheckoutPage() {
 
     try {
       if (!booking) {
-        booking = await bookingApi.create({
-          tourScheduleId: schedule.id,
+        const bookingPayload = {
           customerName: `${contact.lastName.trim()} ${contact.firstName.trim()}`.trim(),
           customerPhone: contact.phone.trim(),
           customerEmail: contact.email.trim(),
           guestCount,
           bookingType,
-        })
+          voucherCode: selectedVoucher?.code || null,
+          ...(isPrivateGroup
+            ? { tourId, requestedStartDate }
+            : { tourScheduleId: schedule.id }),
+        }
+
+        booking = await bookingApi.create(bookingPayload)
         setPendingBooking(booking)
+        if (selectedVoucher) {
+          setRewardVouchers(markRewardVoucherUsed(user, rewardVouchers, selectedVoucher.instanceId))
+          setSelectedVoucherId('')
+        }
+      }
+
+      if (isPrivateGroup) {
+        setGroupRequestSuccess(booking)
+        toast.success('Đã gửi yêu cầu đặt đoàn. TraveX sẽ phân nhân viên và xác nhận trước khi thanh toán.')
+        return
       }
 
       const payment = await bookingApi.payWithVnpay(booking.id)
@@ -167,7 +229,6 @@ export default function CheckoutPage() {
           <img src={travexLogo} alt="TraveX" />
           <span><strong>Trave</strong>X</span>
         </button>
-        <button className="checkout-help" type="button" onClick={() => navigate('/customer/support')}>Trợ giúp</button>
       </header>
 
       <nav className="checkout-steps" aria-label="Tiến trình thanh toán">
@@ -184,6 +245,20 @@ export default function CheckoutPage() {
           <p>{pageError}</p>
           <button className="btn-primary" onClick={() => navigate(tourId ? `/tours/${tourId}` : '/')}>Chọn lại tour</button>
         </section>
+      ) : groupRequestSuccess ? (
+        <section className="checkout-state">
+          <h1>Đã gửi yêu cầu đặt đoàn</h1>
+          <p>Booking #{groupRequestSuccess.id} đang chờ TraveX phân nhân viên và xác nhận lịch. Sau khi được xác nhận, bạn có thể thanh toán VNPay trong Tour của tôi.</p>
+          <div className="payment-result-meta">
+            <span>Ngày khởi hành</span>
+            <strong>{formatDate(groupRequestSuccess.startDate)}</strong>
+          </div>
+          <div className="payment-result-meta">
+            <span>Tổng tiền</span>
+            <strong>{formatVND(groupRequestSuccess.totalAmount)}</strong>
+          </div>
+          <button className="btn-primary" onClick={() => navigate('/customer/my-tours')}>Xem Tour của tôi</button>
+        </section>
       ) : (
         <form className="checkout-shell" onSubmit={handlePayment}>
           <section className="checkout-main">
@@ -198,7 +273,7 @@ export default function CheckoutPage() {
                 <div>
                   <h3>{tour.name}</h3>
                   <p>{tour.destination} • {tour.durationDays} ngày • {bookingTypeLabel}</p>
-                  <small>{formatDate(schedule.startDate)} - {formatDate(schedule.endDate)}</small>
+                  <small>{formatDate(departureStartDate)} - {formatDate(departureEndDate)}</small>
                 </div>
               </div>
             </section>
@@ -232,9 +307,33 @@ export default function CheckoutPage() {
 
             <section className="checkout-panel">
               <h2><span></span>Loại ưu đãi</h2>
-              <div className="checkout-offer-row"><span>Mã ưu đãi nền tảng</span><strong>Không khả dụng</strong></div>
-              <div className="checkout-offer-row"><span>Mã ưu đãi thanh toán</span><strong>Không khả dụng</strong></div>
-              <p className="checkout-muted">Hiện không có mã ưu đãi nào khả dụng cho đơn hàng này.</p>
+              {availableVouchers.length === 0 ? (
+                <div className="checkout-voucher-empty">
+                  <span>Bạn chưa có voucher khả dụng.</span>
+                  <button type="button" onClick={() => navigate('/customer/rewards')}>Đổi điểm lấy voucher</button>
+                </div>
+              ) : (
+                <div className="checkout-voucher-list">
+                  {availableVouchers.map(voucher => {
+                    const active = selectedVoucherId === voucher.instanceId
+                    return (
+                      <button
+                        className={`checkout-voucher-item ${active ? 'active' : ''}`}
+                        key={voucher.instanceId}
+                        type="button"
+                        onClick={() => setSelectedVoucherId(active ? '' : voucher.instanceId)}
+                      >
+                        <span>
+                          <strong>{voucher.title}</strong>
+                          <small>{voucher.code}</small>
+                        </span>
+                        <b>-{formatVND(Math.min(voucher.discountAmount, totalAmount))}</b>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {selectedVoucher && <p className="checkout-muted">Đang áp dụng {selectedVoucher.code}. Voucher sẽ được đánh dấu đã dùng sau khi tạo booking.</p>}
             </section>
 
             <section className="checkout-panel checkout-consent">
@@ -247,9 +346,9 @@ export default function CheckoutPage() {
               <div className="checkout-warning">Vui lòng điền thông tin chính xác. Thông tin không thể chỉnh sửa sau khi gửi.</div>
               {submitError && <div className="checkout-submit-error">{submitError}</div>}
               <div className="checkout-submit-row">
-                <p>Đơn hàng sẽ được gửi đi sau khi thanh toán. Bạn sẽ thanh toán qua VNPay ở bước tiếp theo.</p>
+                <p>{isPrivateGroup ? 'Yêu cầu đoàn sẽ được gửi cho admin phân nhân viên. Bạn sẽ thanh toán sau khi booking được xác nhận.' : 'Đơn hàng sẽ được gửi đi sau khi thanh toán. Bạn sẽ thanh toán qua VNPay ở bước tiếp theo.'}</p>
                 <button className="checkout-pay-btn" type="submit" disabled={submitting}>
-                  {submitting ? 'Đang xử lý...' : 'Thanh toán'}
+                  {submitting ? 'Đang xử lý...' : (isPrivateGroup ? 'Gửi yêu cầu' : 'Thanh toán')}
                 </button>
               </div>
             </section>
@@ -259,14 +358,16 @@ export default function CheckoutPage() {
             <section className="checkout-summary-card">
               <h2>{tour.name}</h2>
               <p>{tour.destination}</p>
-              <div><span>Ngày</span><strong>{formatDate(schedule.startDate)}</strong></div>
+              <div><span>Ngày</span><strong>{formatDate(departureStartDate)}</strong></div>
               <div><span>Hình thức</span><strong>{bookingTypeLabel}</strong></div>
               <div><span>Đơn vị</span><strong>{guestCount} khách</strong></div>
-              <div className="checkout-summary-total"><span>Tổng cộng</span><strong>{formatVND(totalAmount)}</strong></div>
+              {voucherDiscount > 0 && <div><span>Voucher</span><strong>-{formatVND(voucherDiscount)}</strong></div>}
+              <div className="checkout-summary-total"><span>Tổng cộng</span><strong>{formatVND(payableAmount)}</strong></div>
             </section>
             <section className="checkout-summary-card checkout-pay-card">
               <div><span>Tổng cộng</span><strong>{formatVND(totalAmount)}</strong></div>
-              <div><span>Số tiền thanh toán</span><strong>{formatVND(totalAmount)}</strong></div>
+              {voucherDiscount > 0 && <div><span>Voucher</span><strong>-{formatVND(voucherDiscount)}</strong></div>}
+              <div><span>Số tiền thanh toán</span><strong>{formatVND(payableAmount)}</strong></div>
             </section>
             <section className="checkout-summary-card checkout-xu-card">
               <h3>TraveX Xu</h3>

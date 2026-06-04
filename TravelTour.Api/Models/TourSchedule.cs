@@ -16,6 +16,8 @@ public class TourSchedule
 
     public string Status { get; set; } = "Open";
 
+    public string ScheduleType { get; set; } = "Shared";
+
     public int? GuideUserId { get; set; }
 
     public User? GuideUser { get; set; }

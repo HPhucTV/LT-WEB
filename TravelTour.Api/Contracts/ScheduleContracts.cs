@@ -17,6 +17,7 @@ public record ScheduleResponse(
     DateOnly EndDate,
     int AvailableSeats,
     string Status,
+    string ScheduleType,
     int? GuideUserId,
     string? GuideName,
     string? Note,

@@ -110,6 +110,7 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
             schedule.EndDate,
             schedule.AvailableSeats,
             schedule.Status,
+            schedule.ScheduleType,
             schedule.GuideUserId,
             schedule.GuideName,
             schedule.Note,

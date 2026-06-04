@@ -36,8 +36,7 @@ const StaffNotifications = lazy(() => import('./components/staff/StaffNotificati
 const CustomerLayout = lazy(() => import('./components/customer/CustomerLayout'))
 const CustomerDashboard = lazy(() => import('./components/customer/CustomerDashboard'))
 const CustomerReviews = lazy(() => import('./components/customer/CustomerReviews'))
-const CustomerNotifications = lazy(() => import('./components/customer/CustomerNotifications'))
-const CustomerSupport = lazy(() => import('./components/customer/CustomerSupport'))
+const CustomerRewards = lazy(() => import('./components/customer/CustomerRewards'))
 
 import './App.css'
 
@@ -90,8 +89,7 @@ function App() {
               <Route path="tours" element={<TourList />} />
               <Route path="my-tours" element={<BookingList />} />
               <Route path="reviews" element={<CustomerReviews />} />
-              <Route path="notifications" element={<CustomerNotifications />} />
-              <Route path="support" element={<CustomerSupport />} />
+              <Route path="rewards" element={<CustomerRewards />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

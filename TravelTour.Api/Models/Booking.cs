@@ -22,6 +22,10 @@ public class Booking
 
     public string BookingType { get; set; } = "Shared";
 
+    public string? VoucherCode { get; set; }
+
+    public decimal VoucherDiscountAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public string Status { get; set; } = "Pending";

@@ -5,7 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useToast } from '../../contexts/ToastContext'
 import { formatDate } from '../../utils/format'
 
-const STATUS_VALUES = ['Open', 'Closed', 'Full', 'Departed', 'Completed']
+const STATUS_VALUES = ['Open', 'Pending', 'Assigned', 'Closed', 'Full', 'Departed', 'Completed']
 
 function toDateInput(value) {
   return value ? String(value).split('T')[0] : ''
@@ -13,6 +13,8 @@ function toDateInput(value) {
 
 function statusClass(status) {
   if (status === 'Open') return 'active'
+  if (status === 'Assigned') return 'active'
+  if (status === 'Pending') return 'warning'
   if (status === 'Full') return 'warning'
   if (status === 'Closed') return 'inactive'
   return 'neutral'
@@ -44,6 +46,8 @@ export default function StaffSchedule({ canManage = false }) {
 
   function statusLabel(status) {
     if (status === 'Open') return t('openRegistration')
+    if (status === 'Pending') return 'Chờ phân nhân viên'
+    if (status === 'Assigned') return 'Đã phân nhân viên'
     if (status === 'Closed') return t('closedStatus')
     if (status === 'Full') return t('fullStatus')
     if (status === 'Departed') return t('departedStatus')
@@ -185,6 +189,7 @@ export default function StaffSchedule({ canManage = false }) {
               <tr>
                 <th>{t('tour')}</th>
                 <th>{t('duration')}</th>
+                <th>Loại lịch</th>
                 <th>{t('guide')}</th>
                 <th>{t('progress')}</th>
                 <th>{t('status')}</th>
@@ -194,14 +199,16 @@ export default function StaffSchedule({ canManage = false }) {
             </thead>
             <tbody>
               {filteredSchedules.map(item => {
+                const isPrivateGroup = item.scheduleType === 'PrivateGroup'
                 const booked = item.bookedSeats || 0
-                const totalSeats = booked + (item.availableSeats || 0)
+                const totalSeats = isPrivateGroup ? (item.availableSeats || booked) : booked + (item.availableSeats || 0)
                 const percent = totalSeats > 0 ? Math.round((booked / totalSeats) * 100) : 0
 
                 return (
                   <tr key={item.id}>
                     <td><strong>{item.tourName}</strong></td>
                     <td>{formatDate(item.startDate)} - {formatDate(item.endDate)}</td>
+                    <td><span className={`booking-type-badge ${(item.scheduleType || 'Shared').toLowerCase()}`}>{item.scheduleType === 'PrivateGroup' ? 'Đoàn riêng' : 'Tour ghép'}</span></td>
                     <td>{item.guideName || t('unassigned')}</td>
                     <td>
                       <div className="schedule-progress">
