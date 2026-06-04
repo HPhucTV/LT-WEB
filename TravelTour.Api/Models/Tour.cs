@@ -26,6 +26,8 @@ public class Tour
 
     public int MaxGuests { get; set; }
 
+    public int MinGroupGuests { get; set; } = 10;
+
     public string Category { get; set; } = "Khám phá";
 
     public string Description { get; set; } = string.Empty;

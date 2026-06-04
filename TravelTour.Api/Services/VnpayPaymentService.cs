@@ -18,7 +18,7 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
             string.IsNullOrWhiteSpace(_options.HashSecret) ||
             string.IsNullOrWhiteSpace(_options.PaymentUrl))
         {
-            throw new InvalidOperationException("Chua cau hinh day du thong tin VNPay.");
+            throw new InvalidOperationException("Chưa cấu hình đầy đủ thông tin VNPay.");
         }
 
         var now = DateTime.UtcNow.AddHours(7);
@@ -35,7 +35,7 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
             ["vnp_CurrCode"] = "VND",
             ["vnp_IpAddr"] = NormalizeIpAddress(ipAddress),
             ["vnp_Locale"] = "vn",
-            ["vnp_OrderInfo"] = $"Thanh toan booking #{booking.Id}",
+            ["vnp_OrderInfo"] = $"Thanh toán booking #{booking.Id}",
             ["vnp_OrderType"] = "other",
             ["vnp_ReturnUrl"] = _options.ReturnUrl,
             ["vnp_TxnRef"] = transactionRef
@@ -44,7 +44,7 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
         var secureHash = CreateSignature(parameters);
         var paymentUrl = $"{_options.PaymentUrl}?{BuildQueryString(parameters)}&vnp_SecureHash={secureHash}";
 
-        return new VnpayCreatePaymentResult(transactionRef, paymentUrl, "Da tao yeu cau thanh toan VNPay.");
+        return new VnpayCreatePaymentResult(transactionRef, paymentUrl, "Đã tạo yêu cầu thanh toán VNPay.");
     }
 
     public bool VerifyReturn(IQueryCollection query)

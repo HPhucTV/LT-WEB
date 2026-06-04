@@ -41,6 +41,11 @@ public class TourService(
             return ServiceResult<TourResponse>.BadRequest(error);
         }
 
+        if (await tours.CodeExistsAsync(request.Code))
+        {
+            return ServiceResult<TourResponse>.BadRequest("Mã tour đã tồn tại.");
+        }
+
         var tour = new Tour
         {
             Code = request.Code.Trim(),
@@ -54,6 +59,7 @@ public class TourService(
             DiscountStartDate = request.DiscountStartDate,
             DiscountEndDate = request.DiscountEndDate,
             MaxGuests = request.MaxGuests,
+            MinGroupGuests = request.MinGroupGuests,
             Category = request.Category?.Trim() ?? "Khám phá",
             Description = request.Description.Trim(),
             ImageUrl = request.ImageUrl.Trim(),
@@ -81,6 +87,11 @@ public class TourService(
             return ServiceResult<TourResponse>.BadRequest(error);
         }
 
+        if (await tours.CodeExistsAsync(request.Code, id))
+        {
+            return ServiceResult<TourResponse>.BadRequest("Mã tour đã tồn tại.");
+        }
+
         tour.Code = request.Code.Trim();
         tour.Name = request.Name.Trim();
         tour.Destination = request.Destination.Trim();
@@ -92,6 +103,7 @@ public class TourService(
         tour.DiscountStartDate = request.DiscountStartDate;
         tour.DiscountEndDate = request.DiscountEndDate;
         tour.MaxGuests = request.MaxGuests;
+        tour.MinGroupGuests = request.MinGroupGuests;
         tour.Category = request.Category?.Trim() ?? "Khám phá";
         tour.Description = request.Description.Trim();
         tour.ImageUrl = request.ImageUrl.Trim();
@@ -207,7 +219,7 @@ public class TourService(
             tour.DurationDays, tour.Price, tour.OriginalPrice,
             tour.PromotionTitle, tour.PromotionDescription,
             tour.DiscountStartDate, tour.DiscountEndDate, tour.MaxGuests,
-            tour.Category, tour.Description, tour.ImageUrl, tour.IsActive);
+            tour.MinGroupGuests, tour.Category, tour.Description, tour.ImageUrl, tour.IsActive);
     }
 
     private static string? Validate(TourRequest request)
@@ -217,6 +229,8 @@ public class TourService(
         if (request.DurationDays <= 0) return "Số ngày phải lớn hơn 0.";
         if (request.Price < 0) return "Giá tour không được âm.";
         if (request.MaxGuests <= 0) return "Số khách tối đa phải lớn hơn 0.";
+        if (request.MinGroupGuests <= 0) return "Số khách tối thiểu cho đoàn phải lớn hơn 0.";
+        if (request.MinGroupGuests > request.MaxGuests) return "Số khách tối thiểu cho đoàn không được vượt quá sức chứa.";
         return null;
     }
 

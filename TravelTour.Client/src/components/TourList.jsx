@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
@@ -11,18 +11,24 @@ import TourForm from './TourForm'
 export default function TourList() {
   const { tours, onRefresh } = useOutletContext()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const { t } = useSettings()
   const isCustomer = user?.role?.toLowerCase() === 'customer' || !user?.role
   const toast = useToast()
-  const [search, setSearch] = useState('')
+  const querySearch = new URLSearchParams(location.search).get('search') || ''
+  const [manualSearch, setManualSearch] = useState(null)
+  const search = manualSearch ?? querySearch
   const [formOpen, setFormOpen] = useState(false)
   const [editTour, setEditTour] = useState(null)
   const [scheduleTour, setScheduleTour] = useState(null)
 
   const filtered = tours.filter(tour => {
     const keyword = search.toLowerCase()
-    return tour.name.toLowerCase().includes(keyword) || tour.code.toLowerCase().includes(keyword) || tour.destination.toLowerCase().includes(keyword)
+    return tour.name.toLowerCase().includes(keyword)
+      || tour.code.toLowerCase().includes(keyword)
+      || tour.destination.toLowerCase().includes(keyword)
+      || (tour.category || '').toLowerCase().includes(keyword)
   })
 
   async function handleDelete(id, name) {
@@ -48,7 +54,7 @@ export default function TourList() {
           <p>{isCustomer ? t('toursListCustomerHelp') : t('toursListAdminHelp')}</p>
         </div>
         <div className="toolbar-actions">
-          <input placeholder={t('searchTourCodeDestination')} value={search} onChange={event => setSearch(event.target.value)} />
+          <input placeholder={t('searchTourCodeDestination')} value={search} onChange={event => setManualSearch(event.target.value)} />
           {!isCustomer && <button className="btn-primary" onClick={() => { setEditTour(null); setFormOpen(true) }}>+ {t('addTour')}</button>}
         </div>
       </section>
@@ -74,6 +80,7 @@ export default function TourList() {
                   <div><dt>{t('duration')}</dt><dd>{tour.durationDays} {t('days')}</dd></div>
                   <div><dt>{t('priceFrom')}</dt><dd>{formatVND(tour.price)}</dd></div>
                   <div><dt>{t('capacity')}</dt><dd>{tour.maxGuests} {t('guests')}</dd></div>
+                  <div><dt>Đi đoàn</dt><dd>Tối thiểu {tour.minGroupGuests || 10} {t('guests')}</dd></div>
                 </dl>
                 <div className="card-actions" style={{ marginTop: 'auto' }}>
                   {isCustomer ? (

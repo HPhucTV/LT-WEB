@@ -17,8 +17,8 @@ public class PaymentService(AppDbContext db, VnpayPaymentService vnpayPaymentSer
             .FirstOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
 
         if (booking is null) return ServiceResult<CreateVnpayPaymentResponse>.NotFound();
-        if (booking.Status == "Cancelled") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking da huy, khong the thanh toan.");
-        if (booking.PaymentStatus == "Paid") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking nay da duoc thanh toan.");
+        if (booking.Status == "Cancelled") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking đã hủy, không thể thanh toán.");
+        if (booking.PaymentStatus == "Paid") return ServiceResult<CreateVnpayPaymentResponse>.BadRequest("Booking này đã được thanh toán.");
 
         var payment = vnpayPaymentService.CreatePaymentUrl(booking, ipAddress);
 
@@ -71,6 +71,7 @@ public class PaymentService(AppDbContext db, VnpayPaymentService vnpayPaymentSer
         var status = booking.PaymentStatus == "Paid" ? "success" : "failed";
         return new VnpayReturnResult(true, vnpayPaymentService.BuildClientRedirectUrl(query, status));
     }
+
 }
 
 public record VnpayReturnResult(bool IsValidSignature, string RedirectUrl);

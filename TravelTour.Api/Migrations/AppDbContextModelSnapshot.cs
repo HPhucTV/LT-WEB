@@ -46,8 +46,20 @@ namespace TravelTour.Api.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasDefaultValue("");
+
                     b.Property<int>("GuestCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("BookingType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Shared");
 
                     b.Property<string>("MomoOrderId")
                         .HasMaxLength(80)
@@ -246,6 +258,9 @@ namespace TravelTour.Api.Migrations
                     b.Property<int>("MaxGuests")
                         .HasColumnType("integer");
 
+                    b.Property<int>("MinGroupGuests")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -324,33 +339,6 @@ namespace TravelTour.Api.Migrations
                     b.HasIndex("TourId");
 
                     b.ToTable("TourSchedules");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.TourFavorite", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("TourId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TourId");
-
-                    b.HasIndex("UserId", "TourId")
-                        .IsUnique();
-
-                    b.ToTable("TourFavorites");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.User", b =>
@@ -446,25 +434,6 @@ namespace TravelTour.Api.Migrations
                     b.Navigation("GuideUser");
 
                     b.Navigation("Tour");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.TourFavorite", b =>
-                {
-                    b.HasOne("TravelTour.Api.Models.Tour", "Tour")
-                        .WithMany()
-                        .HasForeignKey("TourId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TravelTour.Api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tour");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.Customer", b =>

@@ -15,6 +15,7 @@ const EMPTY = {
   discountStartDate: '',
   discountEndDate: '',
   maxGuests: 20,
+  minGroupGuests: 10,
   category: 'Khám phá',
   description: '',
   imageUrl: '',
@@ -24,7 +25,7 @@ const EMPTY = {
 export default function TourForm({ tour, onClose, onSaved }) {
   const toast = useToast()
   const { t } = useSettings()
-  const [form, setForm] = useState(tour ?? EMPTY)
+  const [form, setForm] = useState(tour ? { ...EMPTY, ...tour, minGroupGuests: tour.minGroupGuests || 10 } : EMPTY)
   const [error, setError] = useState('')
   const isEdit = !!tour
 
@@ -73,6 +74,7 @@ export default function TourForm({ tour, onClose, onSaved }) {
           <label>{t('destination')}<input name="destination" required value={form.destination} onChange={onChange} /></label>
           <label>{t('daysCount')}<input name="durationDays" type="number" min="1" required value={form.durationDays} onChange={onChange} /></label>
           <label>{t('maxGuests')}<input name="maxGuests" type="number" min="1" required value={form.maxGuests} onChange={onChange} /></label>
+          <label>Khách tối thiểu đi đoàn<input name="minGroupGuests" type="number" min="1" max={form.maxGuests || undefined} required value={form.minGroupGuests} onChange={onChange} /></label>
           <label>{t('category')}
             <select name="category" value={form.category} onChange={onChange}>
               <option value="Khám phá">{t('explore')}</option>

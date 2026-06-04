@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { bookingApi, favoriteApi, reviewApi, scheduleApi, tourApi } from '../api'
+import { reviewApi, scheduleApi, tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { formatDate, formatVND } from '../utils/format'
@@ -16,14 +16,11 @@ export default function TourDetails() {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedSchedule, setSelectedSchedule] = useState('')
+  const [bookingType, setBookingType] = useState('Shared')
   const [guestCount, setGuestCount] = useState(1)
-  const [customerName, setCustomerName] = useState(user?.fullName || '')
-  const [customerPhone, setCustomerPhone] = useState('')
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [hoverRating, setHoverRating] = useState(0)
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [isBooking, setIsBooking] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -36,10 +33,6 @@ export default function TourDetails() {
         setTour(tourData)
         setSchedules(scheduleData.filter(schedule => schedule.status === 'Open'))
         setReviews(reviewData)
-        if (user && user.role !== 'Admin' && user.role !== 'Staff') {
-          const favorites = await favoriteApi.list()
-          setIsFavorite(favorites.some(favorite => favorite.id === Number(id)))
-        }
       } catch {
         toast.error('Không thể tải thông tin tour')
       } finally {
@@ -49,48 +42,19 @@ export default function TourDetails() {
     loadData()
   }, [id, user])
 
-  async function toggleFavorite(event) {
-    event.preventDefault()
-    if (!user) {
-      navigate('/login')
-      return
-    }
-    try {
-      if (isFavorite) {
-        await favoriteApi.remove(id)
-        setIsFavorite(false)
-      } else {
-        await favoriteApi.add(id)
-        setIsFavorite(true)
-      }
-    } catch (err) {
-      toast.error(err.message)
-    }
-  }
-
   async function handleBook(event) {
     event.preventDefault()
     if (!user) {
       navigate('/login')
       return
     }
-    try {
-      setIsBooking(true)
-      const booking = await bookingApi.create({
-        tourScheduleId: Number(selectedSchedule),
-        customerName,
-        customerPhone,
-        guestCount: Number(guestCount),
-      })
-      toast.success('Đặt tour thành công! Đang chuyển sang VNPay.')
-      setSelectedSchedule('')
-      setGuestCount(1)
-      navigate(`/payment/vnpay/${booking.id}`)
-    } catch (err) {
-      toast.error(err.message)
-    } finally {
-      setIsBooking(false)
-    }
+    const query = new URLSearchParams({
+      tourId: String(id),
+      scheduleId: String(selectedSchedule),
+      guestCount: String(guestCount),
+      bookingType,
+    })
+    navigate(`/checkout?${query.toString()}`)
   }
 
   async function handleReview(event) {
@@ -160,9 +124,6 @@ export default function TourDetails() {
             <div className="details-image-wrap">
               {tour.imageUrl ? <img src={tour.imageUrl} alt={tour.name} className="details-hero-img" /> : <div className="placeholder-img" style={{ height: 400 }}>Chưa có ảnh</div>}
               {hasDiscount && <span className="card-badge-discount" style={{ fontSize: 16, padding: '8px 16px' }}>-{Math.round((1 - tour.price / tour.originalPrice) * 100)}%</span>}
-              <button className={`favorite-btn favorite-btn-large ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite} aria-label="Yêu thích">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              </button>
             </div>
 
             <div className="details-header">
@@ -233,15 +194,11 @@ export default function TourDetails() {
               <h3>Đặt tour ngay</h3>
               <form onSubmit={handleBook}>
                 <div className="booking-field"><label>Lịch khởi hành</label><select required value={selectedSchedule} onChange={event => setSelectedSchedule(event.target.value)}><option value="">-- Chọn lịch --</option>{schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - Còn {schedule.availableSeats} chỗ</option>)}</select></div>
-                <div className="booking-field"><label>Số khách</label><input type="number" min="1" required value={guestCount} onChange={event => setGuestCount(event.target.value)} /></div>
-                {user && (
-                  <>
-                    <div className="booking-field"><label>Tên người đặt</label><input required value={customerName} onChange={event => setCustomerName(event.target.value)} /></div>
-                    <div className="booking-field"><label>Số điện thoại</label><input required value={customerPhone} onChange={event => setCustomerPhone(event.target.value)} /></div>
-                  </>
-                )}
+                <div className="booking-field"><label>Hình thức</label><select value={bookingType} onChange={event => setBookingType(event.target.value)}><option value="Shared">Đi lẻ / tour ghép</option><option value="PrivateGroup">Đi theo đoàn</option></select></div>
+                <div className="booking-field"><label>Số khách</label><input type="number" min={bookingType === 'PrivateGroup' ? (tour.minGroupGuests || 10) : 1} required value={guestCount} onChange={event => setGuestCount(event.target.value)} /></div>
+                {bookingType === 'PrivateGroup' && <p className="booking-hint">Đi theo đoàn cần ít nhất {tour.minGroupGuests || 10} khách. Tour ghép có thể đặt lẻ theo lịch đã chọn.</p>}
                 {selectedSchedule && <div className="booking-total"><span>Tạm tính:</span><strong>{formatVND(tour.price * guestCount)}</strong></div>}
-                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit" disabled={isBooking}>{isBooking ? 'Đang tạo thanh toán...' : 'Xác nhận đặt tour'}</button>}
+                {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit">Tiếp tục thanh toán</button>}
               </form>
             </div>
           </aside>

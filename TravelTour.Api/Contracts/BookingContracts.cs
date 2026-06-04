@@ -4,7 +4,9 @@ public record BookingRequest(
     int TourScheduleId,
     string CustomerName,
     string CustomerPhone,
-    int GuestCount);
+    string CustomerEmail,
+    int GuestCount,
+    string BookingType = "Shared");
 
 public record BookingStatusUpdate(string Status);
 
@@ -15,9 +17,13 @@ public record BookingResponse(
     DateOnly StartDate,
     string CustomerName,
     string CustomerPhone,
+    string CustomerEmail,
     int GuestCount,
+    string BookingType,
     decimal TotalAmount,
     string Status,
     string PaymentMethod,
     string PaymentStatus,
+    string? TransactionId,
+    DateTime? PaidAt,
     DateTime CreatedAt);

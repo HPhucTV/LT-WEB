@@ -5,7 +5,7 @@ import { bookingApi } from '../api'
 export default function VnpayRedirectPage() {
   const { bookingId } = useParams()
   const navigate = useNavigate()
-  const [message, setMessage] = useState('Dang tao cong thanh toan VNPay...')
+  const [message, setMessage] = useState('Đang tạo cổng thanh toán VNPay...')
 
   useEffect(() => {
     let isMounted = true
@@ -16,16 +16,16 @@ export default function VnpayRedirectPage() {
         const paymentUrl = payment.paymentUrl || payment.PaymentUrl
 
         if (!paymentUrl) {
-          throw new Error('Khong nhan duoc duong dan thanh toan VNPay.')
+          throw new Error('Không nhận được đường dẫn thanh toán VNPay.')
         }
 
         if (isMounted) {
-          setMessage('Dang chuyen sang VNPay...')
+          setMessage('Đang chuyển sang VNPay...')
           window.location.assign(paymentUrl)
         }
       } catch (err) {
         if (isMounted) {
-          setMessage(err.message || 'Khong the tao thanh toan VNPay.')
+          setMessage(err.message || 'Không thể tạo thanh toán VNPay.')
         }
       }
     }
@@ -41,14 +41,14 @@ export default function VnpayRedirectPage() {
     <main className="payment-result-page">
       <section className="payment-result-panel">
         <div className="payment-result-icon">VNPay</div>
-        <h1>Chuyen den VNPay</h1>
+        <h1>Chuyển đến VNPay</h1>
         <p>{message}</p>
         <div className="payment-result-meta">
-          <span>Ma booking</span>
+          <span>Mã booking</span>
           <strong>{bookingId}</strong>
         </div>
         <button className="btn-secondary" onClick={() => navigate('/customer/my-tours')}>
-          Quay lai don dat tour
+          Quay lại đơn đặt tour
         </button>
       </section>
     </main>

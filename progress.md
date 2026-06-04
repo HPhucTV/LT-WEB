@@ -1,42 +1,42 @@
-# Tien do du an Quan Ly Tour Du Lich
+# Tiến độ dự án Quản lý Tour Du lịch
 
-## Tong quan
+## Tổng quan
 
-- Ten du an: Travel Tour Management
+- Tên dự án: Travel Tour Management
 - Backend: ASP.NET Core Web API (MVC Controllers)
 - Frontend: React (Vite)
 - Database: SQL Server Express
 - ORM: Entity Framework Core
 - Auth: JWT Bearer Token
-- Trang thai hien tai: Da hoan thanh MVP
+- Trạng thái hiện tại: Đã hoàn thành MVP
 
-## Muc tieu MVP
+## Mục tiêu MVP
 
-1. Dang nhap va phan quyen co ban. ✅
-2. Quan ly tour du lich. ✅
-3. Quan ly lich khoi hanh. ✅
-4. Dat tour va quan ly booking. ✅
-5. Quan ly khach hang. ✅
-6. Thong ke doanh thu co ban. ✅
+1. Đăng nhập và phân quyền cơ bản. ✅
+2. Quản lý tour du lịch. ✅
+3. Quản lý lịch khởi hành. ✅
+4. Đặt tour và quản lý booking. ✅
+5. Quản lý khách hàng. ✅
+6. Thống kê doanh thu cơ bản. ✅
 
-## Tien do
+## Tiến độ
 
-| Ngay | Hang muc | Trang thai | Ghi chu |
+| Ngày | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- | --- |
-| 2026-04-25 | Khoi tao du an | Hoan thanh | Solution, backend, frontend |
-| 2026-04-25 | Cau hinh EF Core + Models | Hoan thanh | Tour, TourSchedule, Booking |
-| 2026-04-25 | CRUD API Tour | Hoan thanh | Minimal API -> MVC Controllers |
-| 2026-04-25 | Frontend Dashboard + Tour List | Hoan thanh | React components |
-| 2026-04-25 | Database Migration | Hoan thanh | InitialCreate + AddUserAndCustomer |
-| 2026-04-25 | Schedule + Booking API | Hoan thanh | Full CRUD + business logic |
-| 2026-04-25 | Refactor MVC Controllers | Hoan thanh | ToursController, SchedulesController, BookingsController |
-| 2026-04-25 | JWT Authentication | Hoan thanh | Login/Register, [Authorize], Bearer token |
-| 2026-04-25 | Customer Model + CRUD | Hoan thanh | CustomersController + CustomerList.jsx |
-| 2026-04-25 | Bao cao doanh thu | Hoan thanh | ReportsController + ReportPage.jsx + bieu do |
-| 2026-04-25 | Xuat CSV | Hoan thanh | Export bookings + revenue CSV |
-| 2026-04-25 | Tich hop thanh toan MoMo | Hoan thanh mot phan | Them backend service/controller, frontend button, migration. Chua apply DB do loi SQL Server SSPI local |
+| 2026-04-25 | Khởi tạo dự án | Hoàn thành | Solution, backend, frontend |
+| 2026-04-25 | Cấu hình EF Core + Models | Hoàn thành | Tour, TourSchedule, Booking |
+| 2026-04-25 | CRUD API Tour | Hoàn thành | Minimal API -> MVC Controllers |
+| 2026-04-25 | Frontend Dashboard + Tour List | Hoàn thành | React components |
+| 2026-04-25 | Database Migration | Hoàn thành | InitialCreate + AddUserAndCustomer |
+| 2026-04-25 | Schedule + Booking API | Hoàn thành | Full CRUD + business logic |
+| 2026-04-25 | Refactor MVC Controllers | Hoàn thành | ToursController, SchedulesController, BookingsController |
+| 2026-04-25 | JWT Authentication | Hoàn thành | Login/Register, [Authorize], Bearer token |
+| 2026-04-25 | Customer Model + CRUD | Hoàn thành | CustomersController + CustomerList.jsx |
+| 2026-04-25 | Báo cáo doanh thu | Hoàn thành | ReportsController + ReportPage.jsx + biểu đồ |
+| 2026-04-25 | Xuất CSV | Hoàn thành | Export bookings + revenue CSV |
+| 2026-04-25 | Tích hợp thanh toán MoMo | Hoàn thành một phần | Thêm backend service/controller, frontend button, migration. Chưa apply DB do lỗi SQL Server SSPI local |
 
-## Cau truc du an
+## Cấu trúc dự án
 
 ```
 TravelTour.Api/
@@ -62,7 +62,7 @@ TravelTour.Api/
 ├── Data/
 │   └── AppDbContext.cs
 ├── Migrations/
-├── Program.cs
+│   └── Program.cs
 └── appsettings.json
 
 TravelTour.Client/
@@ -83,15 +83,15 @@ TravelTour.Client/
 └── package.json
 ```
 
-## Ghi chu ky thuat
+## Ghi chú kỹ thuật
 
 - SQL Server Express: `.\SQLEXPRESS`
-- JWT token het han sau 12 gio
-- User dau tien dang ky se la Admin
-- Booking tu tinh TotalAmount = Price * GuestCount
-- Khi cancel/xoa booking, AvailableSeats duoc hoan lai
-- Xoa tour/schedule kiem tra FK constraint truoc
-- Frontend dung Vite proxy de goi API
-- MoMo sandbox can cau hinh `Momo:PartnerCode`, `Momo:AccessKey`, `Momo:SecretKey`.
-- MoMo IPN local can public HTTPS URL de MoMo goi duoc backend.
-- Migration `AddMomoPaymentFields` da tao, nhung `dotnet ef database update` dang loi SQL Server local: `Cannot generate SSPI context`.
+- JWT token hết hạn sau 12 giờ
+- User đầu tiên đăng ký sẽ là Admin
+- Booking tự tính TotalAmount = Price * GuestCount
+- Khi cancel/xóa booking, AvailableSeats được hoàn lại
+- Xóa tour/schedule kiểm tra FK constraint trước
+- Frontend dùng Vite proxy để gọi API
+- MoMo sandbox cần cấu hình `Momo:PartnerCode`, `Momo:AccessKey`, `Momo:SecretKey`.
+- MoMo IPN local cần public HTTPS URL để MoMo gọi được backend.
+- Migration `AddMomoPaymentFields` đã tạo, nhưng `dotnet ef database update` đang lỗi SQL Server local: `Cannot generate SSPI context`.

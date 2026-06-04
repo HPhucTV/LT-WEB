@@ -16,7 +16,11 @@ public class Booking
 
     public string CustomerPhone { get; set; } = string.Empty;
 
+    public string CustomerEmail { get; set; } = string.Empty;
+
     public int GuestCount { get; set; }
+
+    public string BookingType { get; set; } = "Shared";
 
     public decimal TotalAmount { get; set; }
 

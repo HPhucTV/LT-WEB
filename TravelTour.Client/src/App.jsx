@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 const HomePage = lazy(() => import('./components/HomePage'))
 const TourDetails = lazy(() => import('./components/TourDetails'))
 const LoginPage = lazy(() => import('./components/LoginPage'))
+const CheckoutPage = lazy(() => import('./components/CheckoutPage'))
 
 /* ─── Admin pages ─── */
 const AdminLayout = lazy(() => import('./components/AdminLayout'))
@@ -34,7 +35,6 @@ const StaffNotifications = lazy(() => import('./components/staff/StaffNotificati
 /* ─── Customer pages ─── */
 const CustomerLayout = lazy(() => import('./components/customer/CustomerLayout'))
 const CustomerDashboard = lazy(() => import('./components/customer/CustomerDashboard'))
-const CustomerFavorites = lazy(() => import('./components/customer/CustomerFavorites'))
 const CustomerReviews = lazy(() => import('./components/customer/CustomerReviews'))
 const CustomerNotifications = lazy(() => import('./components/customer/CustomerNotifications'))
 const CustomerSupport = lazy(() => import('./components/customer/CustomerSupport'))
@@ -53,6 +53,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/tours/:id" element={<TourDetails />} />
             <Route path="/promotions" element={<SummerCampaignPage audience="public" />} />
+            <Route path="/checkout" element={<ProtectedRoute allowedRoles={['customer', '']}><CheckoutPage /></ProtectedRoute>} />
             <Route path="/payment/vnpay/:bookingId" element={<ProtectedRoute allowedRoles={['customer', '']}><VnpayRedirectPage /></ProtectedRoute>} />
             <Route path="/payment-result" element={<PaymentResultPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -88,7 +89,6 @@ function App() {
               <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="tours" element={<TourList />} />
               <Route path="my-tours" element={<BookingList />} />
-              <Route path="favorites" element={<CustomerFavorites />} />
               <Route path="reviews" element={<CustomerReviews />} />
               <Route path="notifications" element={<CustomerNotifications />} />
               <Route path="support" element={<CustomerSupport />} />

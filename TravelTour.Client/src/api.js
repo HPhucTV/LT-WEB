@@ -1,5 +1,3 @@
-import { handleMockRequest } from './mockApi'
-
 const API_BASE = '/api'
 
 function getToken() {
@@ -18,6 +16,19 @@ export function isLoggedIn() {
   return !!getToken()
 }
 
+function getErrorMessage(body, fallback) {
+  if (!body) return fallback
+  if (body.message) return body.message
+  if (body.title && !body.errors) return body.title
+  if (body.errors && typeof body.errors === 'object') {
+    const messages = Object.values(body.errors)
+      .flatMap(value => Array.isArray(value) ? value : [value])
+      .filter(Boolean)
+    if (messages.length) return messages.join(' ')
+  }
+  return fallback
+}
+
 async function request(url, options = {}) {
   const token = getToken()
   const headers = {
@@ -33,26 +44,16 @@ async function request(url, options = {}) {
   try {
     response = await fetch(`${API_BASE}${url}`, { ...options, headers })
   } catch {
-    console.warn(`[API Mock] Network error for ${url}. Using mock API.`)
-    return handleMockRequest(url, options)
-  }
-
-  if (response.status >= 500) {
-    console.warn(`[API Mock] Server error ${response.status} for ${url}. Using mock API.`)
-    return handleMockRequest(url, options)
+    throw new Error('Không thể kết nối API. Vui lòng kiểm tra backend đang chạy.')
   }
 
   if (response.status === 401 && url === '/auth/login') {
     const body = await response.json().catch(() => null)
-    throw new Error(body?.message || 'Tên đăng nhập hoặc mật khẩu không đúng.')
+    throw new Error(getErrorMessage(body, 'Tên đăng nhập hoặc mật khẩu không đúng.'))
   }
 
   if (response.status === 401) {
     const currentToken = getToken()
-    if (currentToken && currentToken.startsWith('mock_jwt_')) {
-      console.warn(`[API Mock] Mock token detected for ${url}. Using mock API.`)
-      return handleMockRequest(url, options)
-    }
     if (currentToken) {
       clearToken()
       window.location.reload()
@@ -62,7 +63,7 @@ async function request(url, options = {}) {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(body?.message || `Lỗi ${response.status}`)
+    throw new Error(getErrorMessage(body, `Lỗi ${response.status}`))
   }
 
   if (response.status === 204) return null
@@ -190,14 +191,6 @@ export const reviewApi = {
   create: (tourId, data) => request(`/tours/${tourId}/reviews`, { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => request(`/reviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   remove: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
-}
-
-// ─── Favorites ──────────────────────────────────────────────────────────────
-
-export const favoriteApi = {
-  list: () => request('/favorites'),
-  add: (tourId) => request('/favorites', { method: 'POST', body: JSON.stringify({ tourId }) }),
-  remove: (tourId) => request(`/favorites/${tourId}`, { method: 'DELETE' }),
 }
 
 // ─── Users (Admin) ──────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ public interface ITourRepository
     Task<List<Tour>> GetAllAsync();
     Task<Tour?> GetByIdAsync(int id, bool asNoTracking = false);
     Task<bool> ExistsAsync(int id);
+    Task<bool> CodeExistsAsync(string code, int? excludeId = null);
     Task<bool> HasSchedulesAsync(int id);
     void Add(Tour tour);
     void Remove(Tour tour);

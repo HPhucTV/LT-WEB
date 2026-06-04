@@ -12,7 +12,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<GuideAvailability> GuideAvailabilities => Set<GuideAvailability>();
-    public DbSet<TourFavorite> TourFavorites => Set<TourFavorite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,7 +45,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.Property(b => b.CustomerName).HasMaxLength(120);
             entity.Property(b => b.CustomerPhone).HasMaxLength(30);
+            entity.Property(b => b.CustomerEmail).HasMaxLength(120).HasDefaultValue("");
             entity.Property(b => b.TotalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(b => b.BookingType).HasMaxLength(30).HasDefaultValue("Shared");
             entity.Property(b => b.Status).HasMaxLength(40);
             entity.Property(b => b.PaymentMethod).HasMaxLength(30);
             entity.Property(b => b.PaymentStatus).HasMaxLength(40);
@@ -95,18 +96,5 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<TourFavorite>(entity =>
-        {
-            entity.HasIndex(f => new { f.UserId, f.TourId }).IsUnique();
-            entity.HasIndex(f => f.TourId);
-            entity.HasOne(f => f.User)
-                .WithMany()
-                .HasForeignKey(f => f.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(f => f.Tour)
-                .WithMany()
-                .HasForeignKey(f => f.TourId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
     }
 }

@@ -30,6 +30,14 @@ public class TourRepository(AppDbContext db) : ITourRepository
         return await db.Tours.AnyAsync(tour => tour.Id == id);
     }
 
+    public async Task<bool> CodeExistsAsync(string code, int? excludeId = null)
+    {
+        var normalized = code.Trim().ToLower();
+        return await db.Tours.AnyAsync(tour =>
+            tour.Code.ToLower() == normalized &&
+            (excludeId == null || tour.Id != excludeId.Value));
+    }
+
     public async Task<bool> HasSchedulesAsync(int id)
     {
         return await db.TourSchedules.AnyAsync(schedule => schedule.TourId == id);

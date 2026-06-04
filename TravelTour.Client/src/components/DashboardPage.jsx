@@ -171,17 +171,19 @@ export default function DashboardPage() {
               <a className="view-all-link" href="#/admin/bookings">{t('viewAll')}</a>
             </div>
             <div className="recent-list">
-              {recentBookings.map(booking => (
-                <div className="recent-item" key={booking.id}>
-                  <div className="recent-avatar">{booking.customerName.charAt(0)}</div>
-                  <div className="recent-info"><strong>{booking.customerName}</strong><small>{booking.tourName}</small></div>
-                  <div className="recent-right">
-                    <span className="recent-amount">{formatVND(booking.totalAmount)}</span>
-                    <span className={`mini-badge ${booking.status.toLowerCase()}`}>{bookingLabel(booking.status)}</span>
-                    <small className="recent-time">{timeAgo(booking.createdAt, t)}</small>
+              {recentBookings.length > 0 ? recentBookings.map(booking => (
+                  <div className="recent-item" key={booking.id}>
+                    <div className="recent-avatar">{booking.customerName.charAt(0)}</div>
+                    <div className="recent-info"><strong>{booking.customerName}</strong><small>{booking.tourName}</small></div>
+                    <div className="recent-right">
+                      <span className="recent-amount">{formatVND(booking.totalAmount)}</span>
+                      <span className={`mini-badge ${booking.status.toLowerCase()}`}>{bookingLabel(booking.status)}</span>
+                      <small className="recent-time">{timeAgo(booking.createdAt, t)}</small>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )) : (
+                  <p className="dash-empty-text">{t('noBookings')}</p>
+                )}
             </div>
           </div>
 
@@ -191,18 +193,20 @@ export default function DashboardPage() {
               <a className="view-all-link" href="#/admin/vnpay">{t('viewAll')}</a>
             </div>
             <div className="recent-list">
-              {(vnpayPayments.length > 0 ? vnpayPayments : recentBookings.slice(0, 3)).map(booking => (
-                <div className="recent-item" key={`vnpay-${booking.id}`}>
-                  <div className="vnpay-avatar">
-                    <svg viewBox="0 0 24 24" fill="#a50064" width="20" height="20"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+              {vnpayPayments.length > 0 ? vnpayPayments.map(booking => (
+                  <div className="recent-item" key={`vnpay-${booking.id}`}>
+                    <div className="vnpay-avatar">
+                      <svg viewBox="0 0 24 24" fill="#a50064" width="20" height="20"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                    </div>
+                    <div className="recent-info"><strong>VNPAY-{String(booking.id).padStart(3, '0')}</strong><small>{booking.customerName}</small></div>
+                    <div className="recent-right">
+                      <span className="recent-amount">{formatVND(booking.totalAmount)}</span>
+                      <span className={`mini-badge ${booking.paymentStatus === 'Paid' ? 'confirmed' : 'pending'}`}>{booking.paymentStatus === 'Paid' ? t('success') : t('pending')}</span>
+                    </div>
                   </div>
-                  <div className="recent-info"><strong>VNPAY-{String(booking.id).padStart(3, '0')}</strong><small>{booking.customerName}</small></div>
-                  <div className="recent-right">
-                    <span className="recent-amount">{formatVND(booking.totalAmount)}</span>
-                    <span className={`mini-badge ${booking.paymentStatus === 'Paid' ? 'confirmed' : 'pending'}`}>{booking.paymentStatus === 'Paid' ? t('success') : t('pending')}</span>
-                  </div>
-                </div>
-              ))}
+                )) : (
+                  <p className="dash-empty-text">{t('noVnpayPayments')}</p>
+                )}
               {confirmedBookings.length > 0 && (
                 <div className="vnpay-total">
                   <span>{t('totalVnpayRevenue')}</span>

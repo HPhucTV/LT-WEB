@@ -1,11 +1,49 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { tourApi, favoriteApi } from '../api'
+import { tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { formatVND } from '../utils/format'
 import { TOUR_CATEGORIES } from '../utils/constants'
 import PromoBanner from './PromoBanner'
 import travexLogo from '../assets/travex-logo.svg'
+
+const moodPresets = [
+  { key: 'relax', label: 'Nghỉ dưỡng', hint: 'Biển xanh, resort, lịch trình nhẹ', category: 'Nghỉ dưỡng', search: '', maxPrice: 12000000 },
+  { key: 'deal', label: 'Săn ưu đãi', hint: 'Ưu tiên tour đang giảm giá', category: 'Tất cả', search: '', maxPrice: 20000000, discounted: true },
+  { key: 'weekend', label: 'Cuối tuần', hint: 'Tour ngắn ngày, dễ chốt nhanh', category: 'Tất cả', search: '', maxPrice: 6000000, maxDays: 3 },
+  { key: 'family', label: 'Gia đình', hint: 'Hành trình thoải mái cho nhóm', category: 'Gia đình', search: '', maxPrice: 15000000 },
+  { key: 'explore', label: 'Khám phá', hint: 'Nhiều điểm đến và trải nghiệm mới', category: 'Khám phá', search: '', maxPrice: 20000000 },
+]
+
+const quizSteps = [
+  {
+    key: 'style',
+    title: 'Bạn đang muốn một chuyến đi như thế nào?',
+    options: [
+      { value: 'relax', label: 'Nghỉ dưỡng nhẹ nhàng', category: 'Nghỉ dưỡng', destinations: ['Phú Quốc', 'Đà Nẵng'] },
+      { value: 'explore', label: 'Khám phá nhiều điểm', category: 'Khám phá', destinations: ['Đà Lạt', 'Hạ Long'] },
+      { value: 'family', label: 'Đi cùng gia đình', category: 'Gia đình', destinations: ['Đà Nẵng', 'Hội An'] },
+    ],
+  },
+  {
+    key: 'budget',
+    title: 'Ngân sách mỗi khách bạn thấy thoải mái?',
+    options: [
+      { value: 'low', label: 'Dưới 3 triệu', maxPrice: 3000000 },
+      { value: 'mid', label: '3 - 5 triệu', maxPrice: 5000000 },
+      { value: 'high', label: 'Trên 5 triệu', maxPrice: 20000000 },
+    ],
+  },
+  {
+    key: 'duration',
+    title: 'Bạn muốn đi trong bao lâu?',
+    options: [
+      { value: 'short', label: '2-3 ngày', maxDays: 3 },
+      { value: 'medium', label: '4 ngày', minDays: 4, maxDays: 4 },
+      { value: 'long', label: '5 ngày trở lên', minDays: 5 },
+    ],
+  },
+]
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -18,8 +56,12 @@ export default function HomePage() {
   const [priceRange, setPriceRange] = useState(20000000)
   const [scrolled, setScrolled] = useState(false)
   const [tourRatings, setTourRatings] = useState({})
-  const [favorites, setFavorites] = useState(new Set())
   const [inspirationIndex, setInspirationIndex] = useState(0)
+  const [selectedMood, setSelectedMood] = useState('')
+  const [quizStep, setQuizStep] = useState(0)
+  const [quizAnswers, setQuizAnswers] = useState({})
+  const [quizResult, setQuizResult] = useState([])
+  const [spotlightTour, setSpotlightTour] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -38,12 +80,6 @@ export default function HomePage() {
         })
         setTourRatings(ratingsMap)
 
-        if (user && user.role !== 'Admin' && user.role !== 'Staff') {
-          try {
-            const favs = await favoriteApi.list()
-            setFavorites(new Set(favs.map(f => f.id)))
-          } catch (e) { console.error('Không tải được danh sách yêu thích', e) }
-        }
       } catch (err) {
         console.error('Không tải được danh sách tour', err)
       } finally {
@@ -52,20 +88,6 @@ export default function HomePage() {
     }
     load()
   }, [user])
-
-  async function toggleFavorite(tourId, e) {
-    e.stopPropagation()
-    if (!user) { navigate('/login'); return }
-    try {
-      if (favorites.has(tourId)) {
-        await favoriteApi.remove(tourId)
-        setFavorites(prev => { const n = new Set(prev); n.delete(tourId); return n })
-      } else {
-        await favoriteApi.add(tourId)
-        setFavorites(prev => { const n = new Set(prev); n.add(tourId); return n })
-      }
-    } catch (err) { console.error(err) }
-  }
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -81,12 +103,15 @@ export default function HomePage() {
     return () => clearInterval(timer)
   }, [tours.length])
 
+  const selectedMoodPreset = moodPresets.find(mood => mood.key === selectedMood)
   const filteredTours = tours.filter(t => {
     const q = searchTerm.toLowerCase()
     const matchSearch = t.name.toLowerCase().includes(q) || t.destination.toLowerCase().includes(q)
     const matchCategory = selectedCategory === 'Tất cả' || t.category === selectedCategory
     const matchPrice = t.price <= priceRange
-    return matchSearch && matchCategory && matchPrice
+    const matchMoodDays = !selectedMoodPreset?.maxDays || t.durationDays <= selectedMoodPreset.maxDays
+    const matchMoodDiscount = !selectedMoodPreset?.discounted || (t.originalPrice && t.originalPrice > t.price)
+    return matchSearch && matchCategory && matchPrice && matchMoodDays && matchMoodDiscount
   })
 
   const fallbackInspirationTours = [
@@ -103,6 +128,98 @@ export default function HomePage() {
   function scrollToTours() {
     document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  function normalizeText(value = '') {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+  }
+
+  function isDiscounted(tour) {
+    return tour.originalPrice && tour.originalPrice > tour.price
+  }
+
+  function applyMood(mood) {
+    setSelectedMood(mood.key)
+    setSelectedCategory(mood.category)
+    setPriceRange(mood.maxPrice)
+    setSearchTerm(mood.search)
+    scrollToTours()
+  }
+
+  function getMoodTours(mood) {
+    return tours.filter(tour => {
+      const category = normalizeText(tour.category)
+      const destination = normalizeText(tour.destination)
+      const name = normalizeText(tour.name)
+      const moodCategory = normalizeText(mood.category)
+      const matchCategory = mood.category === 'Tất cả' || category === moodCategory
+      const matchSearch = !mood.search || destination.includes(normalizeText(mood.search)) || name.includes(normalizeText(mood.search))
+      const matchPrice = tour.price <= mood.maxPrice
+      const matchDays = !mood.maxDays || tour.durationDays <= mood.maxDays
+      const matchDiscount = !mood.discounted || isDiscounted(tour)
+      return matchCategory && matchSearch && matchPrice && matchDays && matchDiscount
+    })
+  }
+
+  function scoreTour(tour, answers) {
+    let score = 0
+    const style = quizSteps[0].options.find(option => option.value === answers.style)
+    const budget = quizSteps[1].options.find(option => option.value === answers.budget)
+    const duration = quizSteps[2].options.find(option => option.value === answers.duration)
+    const tourCategory = normalizeText(tour.category)
+    const tourDestination = normalizeText(tour.destination)
+
+    if (style?.category && tourCategory === normalizeText(style.category)) score += 4
+    if (style?.destinations?.some(destination => tourDestination.includes(normalizeText(destination)))) score += 2
+    if (budget?.maxPrice && tour.price <= budget.maxPrice) score += 3
+    if (duration?.maxDays && tour.durationDays <= duration.maxDays) score += 2
+    if (duration?.minDays && tour.durationDays >= duration.minDays) score += 2
+    if (isDiscounted(tour)) score += 1
+    return score
+  }
+
+  function calculateQuizResult(answers) {
+    const ranked = [...tours]
+      .map(tour => ({ tour, score: scoreTour(tour, answers) }))
+      .sort((a, b) => b.score - a.score || a.tour.price - b.tour.price)
+      .map(item => item.tour)
+    const withMatches = ranked.filter(tour => scoreTour(tour, answers) > 0)
+    setQuizResult((withMatches.length ? withMatches : ranked).slice(0, 3))
+  }
+
+  function chooseQuizOption(option) {
+    const step = quizSteps[quizStep]
+    const nextAnswers = { ...quizAnswers, [step.key]: option.value }
+    setQuizAnswers(nextAnswers)
+
+    if (quizStep === quizSteps.length - 1) {
+      calculateQuizResult(nextAnswers)
+      return
+    }
+
+    setQuizStep(prev => prev + 1)
+  }
+
+  function resetQuiz() {
+    setQuizStep(0)
+    setQuizAnswers({})
+    setQuizResult([])
+  }
+
+  function pickSpotlightTour() {
+    if (!tours.length) return
+    const pool = spotlightTour && tours.length > 1
+      ? tours.filter(tour => tour.id !== spotlightTour.id)
+      : tours
+    setSpotlightTour(pool[Math.floor(Math.random() * pool.length)])
+  }
+
+  const activeMood = selectedMoodPreset
+  const moodMatches = activeMood ? getMoodTours(activeMood).slice(0, 3) : []
+  const currentQuizStep = quizSteps[quizStep]
 
   return (
     <div className="home-page">
@@ -195,6 +312,110 @@ export default function HomePage() {
       {/* ─── Promo Banner ─── */}
       <PromoBanner />
 
+      <section className="trip-playground home-container" aria-label="Công cụ gợi ý chuyến đi">
+        <div className="section-header section-header-left trip-playground-header">
+          <span className="section-eyebrow">Chọn nhanh cảm hứng</span>
+          <h2>Để TraveX gợi ý chuyến đi hợp gu hơn</h2>
+          <p>Chọn mood, trả lời vài câu hoặc bấm gợi ý bất kỳ để tìm tour phù hợp mà không cần tự lọc quá nhiều.</p>
+        </div>
+
+        <div className="mood-strip" aria-label="Bộ lọc cảm hứng">
+          {moodPresets.map(mood => (
+            <button
+              key={mood.key}
+              className={`mood-chip ${selectedMood === mood.key ? 'active' : ''}`}
+              onClick={() => applyMood(mood)}
+            >
+              <strong>{mood.label}</strong>
+              <span>{mood.hint}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeMood && (
+          <div className="mood-summary">
+            <div>
+              <span>Đang xem theo mood</span>
+              <strong>{activeMood.label}</strong>
+            </div>
+            <p>{moodMatches.length ? `${moodMatches.length} tour nổi bật đang khớp với lựa chọn này.` : 'Chưa có tour nào khớp hoàn toàn, bạn có thể thử mood khác.'}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedMood('')
+                setSelectedCategory('Tất cả')
+                setSearchTerm('')
+                setPriceRange(20000000)
+              }}
+            >
+              Xóa mood
+            </button>
+          </div>
+        )}
+
+        <div className="trip-playground-grid">
+          <div className="trip-quiz-panel">
+            <div className="quiz-panel-heading">
+              <span>Quiz gợi ý tour</span>
+              <strong>{quizResult.length ? 'Kết quả phù hợp với bạn' : `Bước ${quizStep + 1}/${quizSteps.length}`}</strong>
+            </div>
+
+            {quizResult.length ? (
+              <>
+                <div className="quiz-result-grid">
+                  {quizResult.map(tour => (
+                    <article key={tour.id} className="quiz-result-item">
+                      {tour.imageUrl ? <img src={tour.imageUrl} alt={tour.name} /> : <div className="quiz-result-placeholder">Chưa có ảnh</div>}
+                      <div>
+                        <span>{tour.durationDays} ngày tại {tour.destination}</span>
+                        <h3>{tour.name}</h3>
+                        <strong>{formatVND(tour.price)}</strong>
+                        <button type="button" onClick={() => navigate(`/tours/${tour.id}`)}>Xem chi tiết</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <button type="button" className="quiz-reset-btn" onClick={resetQuiz}>Làm lại quiz</button>
+              </>
+            ) : (
+              <>
+                <h3>{currentQuizStep.title}</h3>
+                <div className="quiz-options">
+                  {currentQuizStep.options.map(option => (
+                    <button key={option.value} type="button" onClick={() => chooseQuizOption(option)}>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <aside className="spotlight-panel">
+            <div>
+              <span>Gợi ý bất kỳ</span>
+              <h3>{spotlightTour ? spotlightTour.name : 'Bấm để TraveX chọn giúp một tour'}</h3>
+              <p>
+                {spotlightTour
+                  ? `${spotlightTour.durationDays} ngày tại ${spotlightTour.destination} · ${formatVND(spotlightTour.price)}`
+                  : 'Một cách nhanh để khách bắt đầu khám phá khi chưa biết nên đi đâu.'}
+              </p>
+            </div>
+            {spotlightTour?.imageUrl && <img src={spotlightTour.imageUrl} alt={spotlightTour.name} />}
+            <div className="spotlight-actions">
+              <button type="button" onClick={pickSpotlightTour} disabled={!tours.length}>
+                {spotlightTour ? 'Đổi gợi ý' : 'Gợi ý cho tôi'}
+              </button>
+              {spotlightTour && (
+                <button type="button" className="spotlight-detail-btn" onClick={() => navigate(`/tours/${spotlightTour.id}`)}>
+                  Xem tour này
+                </button>
+              )}
+            </div>
+          </aside>
+        </div>
+      </section>
+
       <section className="home-destinations home-container" id="destinations">
         <div className="section-header section-header-left">
           <span className="section-eyebrow">Điểm đến được quan tâm</span>
@@ -286,11 +507,6 @@ export default function HomePage() {
                         -{Math.round((1 - t.price / t.originalPrice) * 100)}%
                       </span>
                     )}
-                    <button className={`favorite-btn ${favorites.has(t.id) ? 'active' : ''}`} onClick={(e) => toggleFavorite(t.id, e)} aria-label="Yêu thích">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                      </svg>
-                    </button>
                   </div>
                   <div className="tour-content">
                     <div className="tour-heading">

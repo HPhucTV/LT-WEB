@@ -21,8 +21,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // ─── Redis Cache ────────────────────────────────────────────────────────────
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(builder.Configuration["Redis"]!));
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+{
+    var redisOptions = ConfigurationOptions.Parse(builder.Configuration["Redis"]!);
+    redisOptions.AbortOnConnectFail = false;
+    return ConnectionMultiplexer.Connect(redisOptions);
+});
 builder.Services.AddSingleton<CacheService>();
 
 // ─── Application Services ───────────────────────────────────────────────────

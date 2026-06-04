@@ -18,6 +18,7 @@ export default function BookingList() {
   const [tours, setTours] = useState([])
   const [schedules, setSchedules] = useState([])
   const [selectedTourId, setSelectedTourId] = useState('')
+  const [bookingType, setBookingType] = useState('Shared')
 
   useEffect(() => { loadBookings() }, [])
 
@@ -57,6 +58,7 @@ export default function BookingList() {
       setTours(await tourApi.list())
       setSchedules([])
       setSelectedTourId('')
+      setBookingType('Shared')
       setFormOpen(true)
     } catch (err) {
       toast.error(err.message)
@@ -81,7 +83,9 @@ export default function BookingList() {
         tourScheduleId: Number(form.get('scheduleId')),
         customerName: form.get('customerName'),
         customerPhone: form.get('customerPhone'),
+        customerEmail: form.get('customerEmail'),
         guestCount: Number(form.get('guestCount')),
+        bookingType: form.get('bookingType'),
       })
       setFormOpen(false)
       loadBookings()
@@ -129,6 +133,12 @@ export default function BookingList() {
     }
   }
 
+  function bookingTypeLabel(type) {
+    return type === 'PrivateGroup' ? 'Đi theo đoàn' : 'Tour ghép'
+  }
+
+  const selectedTour = tours.find(tour => String(tour.id) === String(selectedTourId))
+
   return (
     <>
       <section className="toolbar">
@@ -156,9 +166,17 @@ export default function BookingList() {
                   {schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - {schedule.availableSeats} {t('seatsLeft')}</option>)}
                 </select>
               </label>
+              <label>Hình thức
+                <select name="bookingType" value={bookingType} onChange={event => setBookingType(event.target.value)}>
+                  <option value="Shared">Đi lẻ / tour ghép</option>
+                  <option value="PrivateGroup">Đi theo đoàn</option>
+                </select>
+              </label>
               <label>{t('customerName')}<input name="customerName" required /></label>
               <label>{t('phone')}<input name="customerPhone" required /></label>
-              <label>{t('guestCount')}<input name="guestCount" type="number" min="1" defaultValue="1" required /></label>
+              <label>Email<input name="customerEmail" type="email" required /></label>
+              <label>{t('guestCount')}<input name="guestCount" type="number" min={bookingType === 'PrivateGroup' ? (selectedTour?.minGroupGuests || 10) : 1} defaultValue="1" required /></label>
+              {bookingType === 'PrivateGroup' && <p className="booking-hint span-2">Đi theo đoàn cần ít nhất {selectedTour?.minGroupGuests || 10} khách. Tour ghép có thể đặt lẻ theo lịch đã chọn.</p>}
             </div>
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>{t('cancel')}</button>
@@ -177,7 +195,7 @@ export default function BookingList() {
           <table>
             <thead>
               <tr>
-                <th>#</th><th>{t('tour')}</th><th>{t('departureSchedule')}</th><th>{t('customerName')}</th><th>{t('phone')}</th>
+                <th>#</th><th>{t('tour')}</th><th>{t('departureSchedule')}</th><th>Hình thức</th><th>{t('customerName')}</th><th>{t('phone')}</th>
                 <th>{t('guestCount')}</th><th>{t('totalAmount')}</th><th>{t('status')}</th><th>{t('payment')}</th><th>{t('action')}</th>
               </tr>
             </thead>
@@ -187,6 +205,7 @@ export default function BookingList() {
                   <td>{booking.id}</td>
                   <td>{booking.tourName}</td>
                   <td>{formatDate(booking.startDate)}</td>
+                  <td>{bookingTypeLabel(booking.bookingType)}</td>
                   <td>{booking.customerName}</td>
                   <td>{booking.customerPhone}</td>
                   <td>{booking.guestCount}</td>

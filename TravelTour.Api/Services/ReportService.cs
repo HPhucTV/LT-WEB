@@ -76,7 +76,7 @@ public class ReportService(AppDbContext db)
         var bookings = await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
 
         var csv = new StringBuilder();
-        csv.AppendLine("ID,Tour,Khach hang,SDT,So khach,Tong tien,Trang thai,Ngay tao");
+        csv.AppendLine("ID,Tour,Khách hàng,SĐT,Số khách,Tổng tiền,Trạng thái,Ngày tạo");
 
         foreach (var b in bookings)
         {
@@ -112,7 +112,7 @@ public class ReportService(AppDbContext db)
             .ToListAsync();
 
         var csv = new StringBuilder();
-        csv.AppendLine("Tour,So booking,Tong khach,Doanh thu");
+        csv.AppendLine("Tour,Số booking,Tổng khách,Doanh thu");
 
         foreach (var row in data)
         {
