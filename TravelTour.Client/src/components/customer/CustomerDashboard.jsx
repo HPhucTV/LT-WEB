@@ -1,15 +1,34 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { formatVND } from '../../utils/format'
 import { calculateRewardPoints, getAvailableRewardPoints, loadRewardVouchers } from '../../utils/rewards'
 
-const QUICK_ACTIONS = [
-  { icon: '🔍', label: 'Tìm tour', to: '/customer/tours' },
-  { icon: '🏝', label: 'Tour trong nước', to: '/customer/tours?search=Việt Nam' },
-  { icon: '✈', label: 'Tour nước ngoài', to: '/customer/tours?search=Singapore' },
-  { icon: '🗂', label: 'Tour theo chủ đề', to: '/customer/tours?search=Khám phá' },
-  { icon: '🏷', label: 'Ưu đãi đặc biệt', to: '/promotions' },
+const HERO_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=1400',
+    title: 'Khám phá thế giới',
+    subtitle: 'Những hành trình đáng nhớ đang chờ bạn',
+    cta: 'Khám phá ngay →',
+    to: '/customer/tours',
+    overlay: 'linear-gradient(120deg, rgba(15,23,42,0.65) 50%, rgba(15,23,42,0.2) 100%)',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=1400',
+    title: 'Việt Nam tươi đẹp',
+    subtitle: 'Hành trình xuyên dải đất hình chữ S',
+    cta: 'Tìm tour trong nước →',
+    to: '/customer/tours?search=Việt Nam',
+    overlay: 'linear-gradient(120deg, rgba(6,78,59,0.65) 50%, rgba(6,78,59,0.2) 100%)',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1503917988258-f87a78e3c995?auto=format&fit=crop&q=80&w=1400',
+    title: 'Đông Nam Á huyền bí',
+    subtitle: 'Bay ra thế giới, khám phá văn hóa mới',
+    cta: 'Tour nước ngoài →',
+    to: '/customer/tours?search=Singapore',
+    overlay: 'linear-gradient(120deg, rgba(67,20,120,0.65) 50%, rgba(67,20,120,0.2) 100%)',
+  },
 ]
 
 export default function CustomerDashboard() {
@@ -17,12 +36,33 @@ export default function CustomerDashboard() {
   const { bookings = [], tours = [] } = useOutletContext()
   const { user } = useAuth()
   const [rewardVouchers, setRewardVouchers] = useState(() => loadRewardVouchers(user))
+  const [activeSlide, setActiveSlide] = useState(0)
+  const timerRef = useRef(null)
 
   const today = useMemo(() => startOfDay(new Date()), [])
 
   useEffect(() => {
     setRewardVouchers(loadRewardVouchers(user))
   }, [user])
+
+  const goToSlide = useCallback((index) => {
+    setActiveSlide(index)
+  }, [])
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % HERO_SLIDES.length)
+    }, 4000)
+    return () => clearInterval(timerRef.current)
+  }, [])
+
+  const handleDotClick = useCallback((index) => {
+    clearInterval(timerRef.current)
+    goToSlide(index)
+    timerRef.current = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % HERO_SLIDES.length)
+    }, 4000)
+  }, [goToSlide])
 
   const upcomingTrips = useMemo(() => {
     return bookings
@@ -63,21 +103,35 @@ export default function CustomerDashboard() {
   return (
     <div className="cust-dash-grid">
       <div className="cust-dash-main">
+        {/* Hero Slideshow */}
         <div className="cust-hero">
-          <div className="cust-hero-content">
-            <h2>Khám phá thế giới</h2>
-            <p>Những hành trình đáng nhớ đang chờ bạn</p>
-            <button className="cust-hero-btn" onClick={() => navigate('/customer/tours')}>Khám phá ngay →</button>
-          </div>
-          <div className="cust-hero-dots">
-            <span className="dot active"></span><span className="dot"></span><span className="dot"></span><span className="dot"></span>
-          </div>
-        </div>
-
-        <div className="cust-quick-access">
-          {QUICK_ACTIONS.map(action => (
-            <QuickButton key={action.label} icon={action.icon} label={action.label} onClick={() => navigate(action.to)} />
+          {HERO_SLIDES.map((slide, i) => (
+            <div
+              key={i}
+              className={`cust-hero-slide ${i === activeSlide ? 'active' : ''}`}
+              style={{
+                backgroundImage: `${slide.overlay}, url('${slide.image}')`,
+              }}
+            >
+              <div className="cust-hero-content">
+                <h2>{slide.title}</h2>
+                <p>{slide.subtitle}</p>
+                <button className="cust-hero-btn" onClick={() => navigate(slide.to)}>
+                  {slide.cta}
+                </button>
+              </div>
+            </div>
           ))}
+          <div className="cust-hero-dots">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                className={`dot ${i === activeSlide ? 'active' : ''}`}
+                onClick={() => handleDotClick(i)}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
 
         <div className="cust-card">
@@ -202,15 +256,6 @@ export default function CustomerDashboard() {
         </div>
       </div>
     </div>
-  )
-}
-
-function QuickButton({ icon, label, onClick }) {
-  return (
-    <button className="cust-quick-btn" onClick={onClick}>
-      <div className="icon">{icon}</div>
-      <span>{label}</span>
-    </button>
   )
 }
 
