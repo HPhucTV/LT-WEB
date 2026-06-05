@@ -22,7 +22,9 @@ public class ReviewsController(ReviewService reviewService) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> CreateReview(int tourId, ReviewRequest request)
     {
-        var result = await reviewService.CreateReviewAsync(tourId, request);
+        // Truyền username nếu user đang đăng nhập để gắn UserId vào review
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        var result = await reviewService.CreateReviewAsync(tourId, request, username);
         if (result.IsNotFound) return NotFound(new { message = "Tour không tồn tại." });
         return result.IsSuccess
             ? Created($"/api/tours/{tourId}/reviews/{result.Value!.Id}", result.Value)

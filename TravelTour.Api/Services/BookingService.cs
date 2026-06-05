@@ -22,6 +22,19 @@ public class BookingService(
         return (await bookings.GetAllAsync()).Select(ToResponse).ToList();
     }
 
+    /// <summary>
+    /// Trả về danh sách booking thuộc về khách hàng đang đăng nhập,
+    /// khớp theo CustomerEmail (ưu tiên) hoặc CustomerName.
+    /// </summary>
+    public async Task<List<BookingResponse>> GetMineAsync(string? customerEmail, string? customerName)
+    {
+        var all = await bookings.GetAllAsync();
+        var mine = all.Where(b =>
+            (!string.IsNullOrWhiteSpace(customerEmail) && b.CustomerEmail.Equals(customerEmail, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(customerName) && b.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase)));
+        return mine.Select(ToResponse).ToList();
+    }
+
     public async Task<ServiceResult<BookingResponse>> CreateAsync(BookingRequest request)
     {
         if (!IsValidBookingType(request.BookingType))

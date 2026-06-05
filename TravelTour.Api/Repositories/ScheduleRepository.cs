@@ -59,6 +59,18 @@ public class ScheduleRepository(AppDbContext db) : IScheduleRepository
             .SumAsync(booking => (int?)booking.GuestCount) ?? 0;
     }
 
+    public async Task<Dictionary<int, int>> GetBookedSeatsCountsAsync(IEnumerable<int> scheduleIds)
+    {
+        if (!scheduleIds.Any()) return new Dictionary<int, int>();
+
+        return await db.Bookings
+            .AsNoTracking()
+            .Where(b => scheduleIds.Contains(b.TourScheduleId) && b.Status != "Cancelled")
+            .GroupBy(b => b.TourScheduleId)
+            .Select(g => new { ScheduleId = g.Key, Count = g.Sum(b => (int?)b.GuestCount) ?? 0 })
+            .ToDictionaryAsync(x => x.ScheduleId, x => x.Count);
+    }
+
     public async Task<bool> HasGuideConflictAsync(int guideUserId, DateOnly startDate, DateOnly endDate, int? excludeScheduleId = null)
     {
         return await db.TourSchedules.AnyAsync(schedule =>

@@ -8,13 +8,11 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
 {
     public async Task<List<ScheduleResponse>> GetAllAsync(int? tourId, string? status)
     {
-        var result = new List<ScheduleResponse>();
-        foreach (var schedule in await schedules.GetAllAsync(tourId, status))
-        {
-            result.Add(await ToResponseAsync(schedule));
-        }
+        var schedulesList = await schedules.GetAllAsync(tourId, status);
+        var scheduleIds = schedulesList.Select(s => s.Id).ToList();
+        var counts = await schedules.GetBookedSeatsCountsAsync(scheduleIds);
 
-        return result;
+        return schedulesList.Select(s => ToResponse(s, counts.GetValueOrDefault(s.Id, 0))).ToList();
     }
 
     public async Task<ServiceResult<ScheduleResponse>> UpdateAsync(int id, ScheduleRequest request)
@@ -52,7 +50,8 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
 
         await schedules.SaveChangesAsync();
 
-        return ServiceResult<ScheduleResponse>.Success(await ToResponseAsync(schedule));
+        var bookedSeats = await schedules.CountBookedSeatsAsync(schedule.Id);
+        return ServiceResult<ScheduleResponse>.Success(ToResponse(schedule, bookedSeats));
     }
 
     public async Task<ServiceResult<ScheduleResponse>> AssignGuideAsync(int id, AssignGuideRequest request)
@@ -79,7 +78,8 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
 
         await schedules.SaveChangesAsync();
 
-        return ServiceResult<ScheduleResponse>.Success(await ToResponseAsync(schedule));
+        var bookedSeats = await schedules.CountBookedSeatsAsync(schedule.Id);
+        return ServiceResult<ScheduleResponse>.Success(ToResponse(schedule, bookedSeats));
     }
 
     public async Task<ServiceResult> DeleteAsync(int id)
@@ -100,7 +100,7 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
         return ServiceResult.Success();
     }
 
-    private async Task<ScheduleResponse> ToResponseAsync(TourSchedule schedule)
+    private static ScheduleResponse ToResponse(TourSchedule schedule, int bookedSeats)
     {
         return new ScheduleResponse(
             schedule.Id,
@@ -114,7 +114,7 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
             schedule.GuideUserId,
             schedule.GuideName,
             schedule.Note,
-            await schedules.CountBookedSeatsAsync(schedule.Id));
+            bookedSeats);
     }
 
     private static string? Validate(ScheduleRequest request)

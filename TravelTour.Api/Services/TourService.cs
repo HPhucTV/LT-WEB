@@ -142,11 +142,12 @@ public class TourService(
             return ServiceResult<List<ScheduleResponse>>.NotFound();
         }
 
-        var result = new List<ScheduleResponse>();
-        foreach (var schedule in await schedules.GetByTourIdAsync(tourId))
-        {
-            result.Add(await ToScheduleResponseAsync(schedule));
-        }
+        var schedulesList = await schedules.GetByTourIdAsync(tourId);
+        var scheduleIds = schedulesList.Select(s => s.Id).ToList();
+        var bookedSeatsCounts = await schedules.GetBookedSeatsCountsAsync(scheduleIds);
+
+        var result = schedulesList.Select(schedule => 
+            ToScheduleResponse(schedule, bookedSeatsCounts.GetValueOrDefault(schedule.Id, 0))).ToList();
 
         return ServiceResult<List<ScheduleResponse>>.Success(result);
     }
@@ -198,7 +199,7 @@ public class TourService(
             schedule.Note, 0));
     }
 
-    private async Task<ScheduleResponse> ToScheduleResponseAsync(TourSchedule schedule)
+    private static ScheduleResponse ToScheduleResponse(TourSchedule schedule, int bookedSeats)
     {
         return new ScheduleResponse(
             schedule.Id,
@@ -212,7 +213,7 @@ public class TourService(
             schedule.GuideUserId,
             schedule.GuideName,
             schedule.Note,
-            await schedules.CountBookedSeatsAsync(schedule.Id));
+            bookedSeats);
     }
 
     private static TourResponse ToResponse(Tour tour)

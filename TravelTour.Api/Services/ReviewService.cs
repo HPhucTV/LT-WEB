@@ -15,7 +15,8 @@ public class ReviewService(AppDbContext db)
         var reviews = await db.Reviews
             .AsNoTracking()
             .Include(r => r.Tour)
-            .Where(r => r.CustomerName == user.FullName)
+            // Lọc theo UserId (chính xác); fallback theo CustomerName cho review cũ
+            .Where(r => r.UserId == user.Id || (r.UserId == null && r.CustomerName == user.FullName))
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new MyReviewResponse(
                 r.Id, r.TourId, r.Tour!.Name, r.CustomerName, r.Rating, r.Comment, r.CreatedAt))
@@ -41,7 +42,7 @@ public class ReviewService(AppDbContext db)
         return ServiceResult<List<ReviewResponse>>.Success(reviews);
     }
 
-    public async Task<ServiceResult<ReviewResponse>> CreateReviewAsync(int tourId, ReviewRequest request)
+    public async Task<ServiceResult<ReviewResponse>> CreateReviewAsync(int tourId, ReviewRequest request, string? username = null)
     {
         if (!await db.Tours.AnyAsync(t => t.Id == tourId))
         {
@@ -58,9 +59,13 @@ public class ReviewService(AppDbContext db)
             return ServiceResult<ReviewResponse>.BadRequest("Đánh giá phải từ 1 đến 5 sao.");
         }
 
+        // Gắn UserId nếu người dùng đang đăng nhập
+        var user = await GetUserAsync(username);
+
         var review = new Review
         {
             TourId = tourId,
+            UserId = user?.Id,
             CustomerName = request.CustomerName.Trim(),
             Rating = request.Rating,
             Comment = request.Comment?.Trim() ?? string.Empty
@@ -77,9 +82,12 @@ public class ReviewService(AppDbContext db)
         var user = await GetUserAsync(username);
         if (user is null) return ServiceResult<MyReviewResponse>.BadRequest("Unauthorized");
 
+        // Tìm review theo UserId (chính xác) hoặc fallback theo CustomerName (review cũ)
         var review = await db.Reviews
             .Include(r => r.Tour)
-            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerName == user.FullName);
+            .FirstOrDefaultAsync(r => r.Id == id
+                && (r.UserId == user.Id || (r.UserId == null && r.CustomerName == user.FullName)));
+
         if (review is null) return ServiceResult<MyReviewResponse>.NotFound();
 
         if (request.Rating < 1 || request.Rating > 5)
@@ -89,6 +97,8 @@ public class ReviewService(AppDbContext db)
 
         review.Rating = request.Rating;
         review.Comment = request.Comment?.Trim() ?? string.Empty;
+        // Gắn UserId nếu review cũ chưa có (migration dữ liệu tự nhiên)
+        review.UserId ??= user.Id;
 
         await db.SaveChangesAsync();
         return ServiceResult<MyReviewResponse>.Success(ToMyResponse(review));
@@ -99,7 +109,9 @@ public class ReviewService(AppDbContext db)
         var user = await GetUserAsync(username);
         if (user is null) return ServiceResult.BadRequest("Unauthorized");
 
-        var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id && r.CustomerName == user.FullName);
+        var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id
+            && (r.UserId == user.Id || (r.UserId == null && r.CustomerName == user.FullName)));
+
         if (review is null) return ServiceResult.NotFound();
 
         db.Reviews.Remove(review);

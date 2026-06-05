@@ -26,22 +26,23 @@ export default function CustomerLayout() {
 
   const loadData = useCallback(async () => {
     try {
-      const [tourData, bookingData] = await Promise.all([tourApi.list(), bookingApi.list()])
+      // mine() trả về booking của chính user từ server, không cần filter client-side
+      const [tourData, bookingData] = await Promise.all([tourApi.list(), bookingApi.mine()])
       setTours(tourData || [])
-      setBookings((bookingData || []).filter(item => item.customerName === (user?.fullName || user?.username) || !user?.fullName))
+      setBookings(bookingData || [])
     } catch {
       setTours([])
       setBookings([])
     }
-  }, [user])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([tourApi.list(), bookingApi.list()])
+    Promise.all([tourApi.list(), bookingApi.mine()])
       .then(([tourData, bookingData]) => {
         if (cancelled) return
         setTours(tourData || [])
-        setBookings((bookingData || []).filter(item => item.customerName === (user?.fullName || user?.username) || !user?.fullName))
+        setBookings(bookingData || [])
       })
       .catch(() => {
         if (cancelled) return
@@ -49,7 +50,7 @@ export default function CustomerLayout() {
         setBookings([])
       })
     return () => { cancelled = true }
-  }, [user])
+  }, [])
 
   function handleSearch(event) {
     event.preventDefault()

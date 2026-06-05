@@ -8,6 +8,14 @@ public class Review
 
     public Tour? Tour { get; set; }
 
+    /// <summary>
+    /// FK tới User — dùng để kiểm tra quyền sở hữu (thay thế so sánh FullName).
+    /// Nullable để tương thích ngược với các review cũ chưa có UserId.
+    /// </summary>
+    public int? UserId { get; set; }
+
+    public User? User { get; set; }
+
     public string CustomerName { get; set; } = string.Empty;
 
     public int Rating { get; set; }

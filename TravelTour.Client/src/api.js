@@ -133,7 +133,8 @@ export const guideApi = {
 // ─── Bookings ───────────────────────────────────────────────────────────────
 
 export const bookingApi = {
-  list: () => request('/bookings'),
+  list: () => request('/bookings'),              // Admin/Staff only
+  mine: () => request('/bookings/mine'),         // Customer: chỉ booking của mình
   create: (data) => request('/bookings', { method: 'POST', body: JSON.stringify(data) }),
   updateStatus: (id, status) =>
     request(`/bookings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),

@@ -86,6 +86,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(r => r.CustomerName).HasMaxLength(120);
             entity.Property(r => r.Comment).HasMaxLength(1000);
             entity.HasIndex(r => r.TourId);
+            entity.HasIndex(r => r.UserId);
+            // UserId nullable: xóa User thì review vẫn giữ nguyên (set null)
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<GuideAvailability>(entity =>

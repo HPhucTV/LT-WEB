@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TravelTour.Api.Contracts;
 using TravelTour.Api.Services;
 
@@ -10,10 +11,30 @@ namespace TravelTour.Api.Controllers;
 [Route("api/bookings")]
 public class BookingsController(BookingService bookingService) : ControllerBase
 {
+    /// <summary>
+    /// Chỉ Admin và Staff mới được xem toàn bộ danh sách booking.
+    /// Customer phải dùng GET /api/bookings/mine.
+    /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAll()
     {
         return Ok(await bookingService.GetAllAsync());
+    }
+
+    /// <summary>
+    /// Customer xem danh sách booking của chính mình.
+    /// Lọc theo email hoặc tên đăng ký từ JWT claims.
+    /// </summary>
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine()
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        var fullName = User.FindFirstValue("fullName");
+        // Tạm dùng fullName để khớp CustomerName vì booking lưu theo tên
+        // (cải thiện lâu dài: lưu UserId vào Booking)
+        var result = await bookingService.GetMineAsync(customerEmail: null, customerName: fullName);
+        return Ok(result);
     }
 
     [HttpPost]
@@ -29,6 +50,7 @@ public class BookingsController(BookingService bookingService) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> UpdateStatus(int id, BookingStatusUpdate update)
     {
         var result = await bookingService.UpdateStatusAsync(id, update);
@@ -41,6 +63,7 @@ public class BookingsController(BookingService bookingService) : ControllerBase
     }
 
     [HttpPut("{id:int}/assign-guide")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> AssignGuide(int id, AssignGuideRequest request)
     {
         var result = await bookingService.AssignGuideAsync(id, request);
@@ -53,6 +76,7 @@ public class BookingsController(BookingService bookingService) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await bookingService.DeleteAsync(id);
