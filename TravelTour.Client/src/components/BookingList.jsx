@@ -61,10 +61,7 @@ export default function BookingList() {
   async function loadBookings() {
     setLoading(true)
     try {
-      let data = await bookingApi.list()
-      if (isCustomer && user) {
-        data = data.filter(booking => booking.customerName === user.fullName || booking.customerName === user.username)
-      }
+      const data = isCustomer ? await bookingApi.mine() : await bookingApi.list()
       setBookings(data)
     } catch {
       setBookings([])

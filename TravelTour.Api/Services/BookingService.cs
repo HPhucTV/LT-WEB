@@ -24,14 +24,15 @@ public class BookingService(
 
     /// <summary>
     /// Trả về danh sách booking thuộc về khách hàng đang đăng nhập,
-    /// khớp theo CustomerEmail (ưu tiên) hoặc CustomerName.
+    /// khớp theo CustomerEmail (ưu tiên), CustomerName hoặc tên đăng nhập.
     /// </summary>
-    public async Task<List<BookingResponse>> GetMineAsync(string? customerEmail, string? customerName)
+    public async Task<List<BookingResponse>> GetMineAsync(string? customerEmail, string? customerName, string? username)
     {
         var all = await bookings.GetAllAsync();
         var mine = all.Where(b =>
             (!string.IsNullOrWhiteSpace(customerEmail) && b.CustomerEmail.Equals(customerEmail, StringComparison.OrdinalIgnoreCase))
-            || (!string.IsNullOrWhiteSpace(customerName) && b.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase)));
+            || (!string.IsNullOrWhiteSpace(customerName) && b.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(username) && b.CustomerName.Equals(username, StringComparison.OrdinalIgnoreCase)));
         return mine.Select(ToResponse).ToList();
     }
 

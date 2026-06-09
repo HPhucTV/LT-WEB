@@ -31,9 +31,10 @@ public class BookingsController(BookingService bookingService) : ControllerBase
     {
         var username = User.FindFirstValue(ClaimTypes.Name);
         var fullName = User.FindFirstValue("fullName");
-        // Tạm dùng fullName để khớp CustomerName vì booking lưu theo tên
+        // Tạm khớp theo tên/email vì booking chưa lưu UserId.
         // (cải thiện lâu dài: lưu UserId vào Booking)
-        var result = await bookingService.GetMineAsync(customerEmail: null, customerName: fullName);
+        var customerEmail = username?.Contains('@') == true ? username : null;
+        var result = await bookingService.GetMineAsync(customerEmail, fullName, username);
         return Ok(result);
     }
 
