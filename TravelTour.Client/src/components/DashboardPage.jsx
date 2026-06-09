@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Line } from 'react-chartjs-2'
-import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js'
+import { Bar } from 'react-chartjs-2'
+import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { reportApi } from '../api'
 import { useSettings } from '../contexts/SettingsContext'
 import { bookingStatusLabel, formatVND } from '../utils/format'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+
+const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#6366f1', '#f97316']
 
 function timeAgo(dateStr, t) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -28,6 +30,7 @@ export default function DashboardPage() {
   const pendingBookings = bookings.filter(booking => booking.status === 'Pending').length
   const confirmedBookings = bookings.filter(booking => booking.status !== 'Cancelled')
   const totalRevenue = confirmedBookings.reduce((sum, booking) => sum + booking.totalAmount, 0)
+  const dashboardRevenue = summary?.totalRevenue ?? totalRevenue
   const vnpayRevenue = confirmedBookings.filter(booking => booking.paymentStatus === 'Paid').reduce((sum, booking) => sum + booking.totalAmount, 0)
   const recentBookings = [...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
   const vnpayPayments = confirmedBookings.filter(booking => booking.paymentStatus === 'Paid' || booking.paymentStatus === 'PaymentCreated').slice(0, 5)
@@ -42,47 +45,61 @@ export default function DashboardPage() {
 
   const revenueByTour = {}
   confirmedBookings.forEach(booking => { revenueByTour[booking.tourName] = (revenueByTour[booking.tourName] || 0) + booking.totalAmount })
-  const chartLabels = Object.keys(revenueByTour)
-  const chartValues = Object.values(revenueByTour)
-  const maxRevenue = Math.max(...chartValues, 1)
-  const tourPerf = chartLabels
-    .map((name, index) => ({ name, revenue: chartValues[index], pct: Math.round((chartValues[index] / maxRevenue) * 100) }))
+  const revenueRows = Object.entries(revenueByTour)
+    .map(([name, revenue]) => ({ name, revenue }))
     .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 8)
+  const chartLabels = revenueRows.map(row => row.name)
+  const chartValues = revenueRows.map(row => row.revenue)
+  const maxRevenue = Math.max(...chartValues, 1)
+  const hasRevenueData = chartValues.some(value => value > 0)
+  const tourPerf = revenueRows
+    .map(row => ({ ...row, pct: Math.round((row.revenue / maxRevenue) * 100) }))
     .slice(0, 5)
 
-  const lineChartData = {
-    labels: chartLabels.length > 0 ? chartLabels : [t('emptyCampaign')],
+  const revenueChartData = {
+    labels: hasRevenueData ? chartLabels : [t('emptyCampaign')],
     datasets: [{
       label: t('revenue'),
-      data: chartValues.length > 0 ? chartValues : [0],
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-      fill: true,
-      tension: 0.4,
-      pointBackgroundColor: '#10b981',
-      pointBorderColor: '#fff',
-      pointBorderWidth: 2,
-      pointRadius: 5,
+      data: hasRevenueData ? chartValues : [0],
+      backgroundColor: (hasRevenueData ? chartValues : [0]).map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
+      borderRadius: 10,
+      borderSkipped: false,
+      maxBarThickness: 76,
+      categoryPercentage: chartLabels.length <= 1 ? 0.32 : 0.72,
+      barPercentage: 0.82,
     }],
   }
 
-  const lineChartOptions = {
+  const revenueChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: ctx => formatVND(ctx.raw) } },
+      tooltip: { callbacks: { label: ctx => formatVND(ctx.parsed.y || 0) } },
     },
     scales: {
-      y: { ticks: { callback: value => `${(value / 1000000).toFixed(0)}M` }, grid: { color: '#334155' } },
-      x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        ticks: {
+          color: '#64748b',
+          callback: value => `${(value / 1000000).toFixed(0)}M`,
+        },
+        grid: { color: '#e2e8f0' },
+      },
+      x: {
+        border: { display: false },
+        grid: { display: false },
+        ticks: { color: '#64748b', maxRotation: 0 },
+      },
     },
   }
 
   return (
     <div className="dash">
       <div className="dash-metrics">
-        <MetricCard tone="green" label={t('totalRevenue')} value={formatVND(summary?.totalRevenue ?? totalRevenue)} note={`+18.6% ${t('vsPrevious')}`} />
+        <MetricCard tone="green" label={t('totalRevenue')} value={formatVND(dashboardRevenue)} note={`+18.6% ${t('vsPrevious')}`} />
         <MetricCard tone="blue" label={t('activeTours')} value={summary?.activeTours ?? activeTours} note={`${tours.length - activeTours} ${t('closedTours')}`} />
         <MetricCard tone="orange" label={t('pendingBookings')} value={pendingBookings} note={`${pendingBookings} ${t('requestsNeedReview')}`} />
         <MetricCard tone="purple" label={t('vnpayPayments')} value={formatVND(vnpayRevenue)} note={`+22.4% ${t('vsPrevious')}`} />
@@ -90,9 +107,22 @@ export default function DashboardPage() {
 
       <div className="dash-grid">
         <div className="dash-main">
-          <div className="dash-card">
-            <div className="dash-card-header"><h3>{t('revenue')}</h3></div>
-            <div className="dash-chart-wrap"><Line data={lineChartData} options={lineChartOptions} /></div>
+          <div className="dash-card revenue-chart-card">
+            <div className="dash-card-header">
+              <div>
+                <h3>{t('revenue')}</h3>
+                <span className="dash-chart-note">{chartLabels.length} {t('tour')}</span>
+              </div>
+              <div className="dash-chart-total">
+                <span>{t('totalRevenue')}</span>
+                <strong>{formatVND(dashboardRevenue)}</strong>
+              </div>
+            </div>
+            {hasRevenueData ? (
+              <div className="dash-chart-wrap"><Bar data={revenueChartData} options={revenueChartOptions} /></div>
+            ) : (
+              <div className="dash-chart-empty">{t('noBookings')}</div>
+            )}
           </div>
 
           <div className="dash-card">

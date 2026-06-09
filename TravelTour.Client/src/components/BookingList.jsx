@@ -325,7 +325,7 @@ export default function BookingList() {
                   </td>
                   <td><span className={`payment-badge ${(booking.paymentStatus || '').toLowerCase()}`}>{paymentLabel(booking.paymentStatus)}</span></td>
                   <td className="row-actions">
-                    {canPay(booking) && (
+                    {isCustomer && canPay(booking) && (
                       <button className="btn-sm btn-vnpay" onClick={() => handleVnpayPayment(booking.id)}>VNPay</button>
                     )}
                     {!isCustomer && booking.bookingType === 'PrivateGroup' && booking.status !== 'Cancelled' && (

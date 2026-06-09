@@ -427,6 +427,39 @@
   margin: 0;
 }
 
+.revenue-chart-card .dash-card-header {
+  align-items: flex-start;
+}
+
+.dash-chart-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.dash-chart-total {
+  text-align: right;
+  min-width: 150px;
+}
+
+.dash-chart-total span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.dash-chart-total strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
 .view-all-link {
   flex-shrink: 0;
   font-size: 13px;
@@ -438,8 +471,17 @@
 .view-all-link:hover { text-decoration: underline; }
 
 /* Chart */
-.dash-chart-wrap { height: 280px; min-width: 0; }
+.dash-chart-wrap { height: 300px; min-width: 0; }
 .dash-chart-wrap canvas { max-width: 100% !important; }
+
+.dash-chart-empty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+}
 
 /* Tour Performance Bars */
 .perf-bars { display: flex; flex-direction: column; gap: 14px; }
