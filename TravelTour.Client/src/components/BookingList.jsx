@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { bookingApi, guideApi, scheduleApi, tourApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,6 +22,7 @@ export default function BookingList() {
   const [requestedStartDate, setRequestedStartDate] = useState('')
   const [assignBooking, setAssignBooking] = useState(null)
   const [availableGuides, setAvailableGuides] = useState([])
+  const [bookingSearchTerm, setBookingSearchTerm] = useState('')
 
   useEffect(() => { loadBookings() }, [])
 
@@ -193,6 +194,13 @@ export default function BookingList() {
 
   const selectedTour = tours.find(tour => String(tour.id) === String(selectedTourId))
   const todayDate = new Date().toISOString().slice(0, 10)
+  const searchTerm = bookingSearchTerm.trim().toLowerCase()
+  const visibleBookings = useMemo(() => {
+    if (!searchTerm || isCustomer) return bookings
+    return bookings.filter(booking =>
+      (booking.customerName || '').toLowerCase().includes(searchTerm)
+      || (booking.tourName || '').toLowerCase().includes(searchTerm))
+  }, [bookings, isCustomer, searchTerm])
 
   return (
     <>
@@ -201,7 +209,20 @@ export default function BookingList() {
           <h2>{isCustomer ? t('myTours') : t('bookingsListTitle')}</h2>
           <p>{isCustomer ? t('myToursHelp') : t('bookingsListHelp')}</p>
         </div>
-        <button className="btn-primary" onClick={openForm}>+ {t('bookTour')}</button>
+        <div className="toolbar-actions">
+          {!isCustomer && (
+            <label className="booking-search-box">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <input
+                value={bookingSearchTerm}
+                onChange={event => setBookingSearchTerm(event.target.value)}
+                placeholder={t('adminSearchPlaceholder')}
+                aria-label={t('adminSearchPlaceholder')}
+              />
+            </label>
+          )}
+          <button className="btn-primary" onClick={openForm}>+ {t('bookTour')}</button>
+        </div>
       </section>
 
       {formOpen && (
@@ -286,6 +307,8 @@ export default function BookingList() {
         <p className="empty-msg">{t('loading')}</p>
       ) : bookings.length === 0 ? (
         <p className="empty-msg">{t('noBookings')}</p>
+      ) : visibleBookings.length === 0 ? (
+        <p className="empty-msg">Không tìm thấy đặt tour phù hợp.</p>
       ) : (
         <div className="table-wrap">
           <table>
@@ -296,7 +319,7 @@ export default function BookingList() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map(booking => (
+              {visibleBookings.map(booking => (
                 <tr key={booking.id}>
                   <td>{booking.id}</td>
                   <td>{booking.tourName}</td>

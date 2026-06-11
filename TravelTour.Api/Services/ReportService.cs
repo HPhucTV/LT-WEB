@@ -14,7 +14,6 @@ public class ReportService(AppDbContext db)
         var totalTours = await db.Tours.CountAsync();
         var activeTours = await db.Tours.CountAsync(t => t.IsActive);
         var totalBookings = await db.Bookings.CountAsync();
-        var totalCustomers = await db.Customers.CountAsync();
 
         var confirmedQuery = db.Bookings.Where(b => b.Status != "Cancelled");
         var totalRevenue = await confirmedQuery.SumAsync(b => b.TotalAmount);
@@ -35,7 +34,7 @@ public class ReportService(AppDbContext db)
             .Take(5)
             .ToListAsync();
 
-        return new { totalTours, activeTours, totalBookings, totalCustomers, totalRevenue, totalGuests, topTours };
+        return new { totalTours, activeTours, totalBookings, totalRevenue, totalGuests, topTours };
     }
 
     public async Task<object> RevenueAsync(string? from, string? to)

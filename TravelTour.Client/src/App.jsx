@@ -16,7 +16,6 @@ const AdminLayout = lazy(() => import('./components/AdminLayout'))
 const DashboardPage = lazy(() => import('./components/DashboardPage'))
 const TourList = lazy(() => import('./components/TourList'))
 const BookingList = lazy(() => import('./components/BookingList'))
-const CustomerList = lazy(() => import('./components/CustomerList'))
 const ReportPage = lazy(() => import('./components/ReportPage'))
 const VnpayPage = lazy(() => import('./components/VnpayPage'))
 const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'))
@@ -64,12 +63,12 @@ function App() {
               <Route path="tours" element={<TourList />} />
               <Route path="bookings" element={<BookingList />} />
               <Route path="schedule" element={<StaffSchedule canManage />} />
-              <Route path="customers" element={<CustomerList />} />
               <Route path="reports" element={<ReportPage />} />
               <Route path="vnpay" element={<VnpayPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="promotions" element={<SummerCampaignPage />} />
+              <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
 
             {/* Staff — only Staff role */}

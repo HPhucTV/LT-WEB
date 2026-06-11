@@ -246,34 +246,6 @@
   gap: 16px;
 }
 
-.admin-search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 8px 14px;
-  width: 320px;
-  transition: border-color 0.15s;
-}
-
-.admin-search-box:focus-within {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.admin-search-box svg { color: #94a3b8; flex-shrink: 0; }
-
-.admin-search-box input {
-  border: none;
-  outline: none;
-  font: inherit;
-  font-size: 14px;
-  width: 100%;
-  background: transparent;
-}
-
 .admin-topbar-right {
   display: flex;
   align-items: center;
@@ -2142,6 +2114,34 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
   align-items: center;
 }
 
+.booking-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(360px, 42vw);
+  min-width: 260px;
+  border: 1px solid #c4d3e0;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+}
+
+.booking-search-box svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.booking-search-box input {
+  width: 100%;
+  border: 0;
+  padding: 12px 0;
+}
+
+.booking-search-box:focus-within {
+  outline: 3px solid rgba(37, 99, 235, 0.15);
+  border-color: #2563eb;
+}
+
 .toolbar input,
 .toolbar select {
   width: min(320px, 100%);
@@ -2156,6 +2156,18 @@ h1 { margin-bottom: 0; font-size: 34px; line-height: 1.15; color: #0f2b4a; }
 .toolbar select:focus {
   outline: 3px solid rgba(37, 99, 235, 0.15);
   border-color: #2563eb;
+}
+
+.toolbar .booking-search-box input {
+  width: 100%;
+  border: 0;
+  padding: 12px 0;
+  background: transparent;
+}
+
+.toolbar .booking-search-box input:focus {
+  outline: 0;
+  border-color: transparent;
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────────── */
@@ -6405,20 +6417,6 @@ tbody tr:hover {
   background: #162033;
 }
 
-:root.theme-dark .admin-search-box {
-  background: #111827;
-  border-color: #334155;
-  color: #e5edf7;
-}
-
-:root.theme-dark .admin-search-box:hover,
-:root.theme-dark .admin-search-box:focus-within {
-  background: #0b1220;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
-}
-
-:root.theme-dark .admin-search-box input,
 :root.theme-dark .staff-search input,
 :root.theme-dark .cust-search input {
   background: transparent;
@@ -6427,7 +6425,6 @@ tbody tr:hover {
   box-shadow: none;
 }
 
-:root.theme-dark .admin-search-box svg,
 :root.theme-dark .staff-search svg,
 :root.theme-dark .cust-search svg {
   color: #94a3b8;

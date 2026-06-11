@@ -3,7 +3,6 @@ export const SIDEBAR_MAIN = [
   { key: 'tours', label: 'Tour', icon: 'tour' },
   { key: 'bookings', label: 'Đặt tour', icon: 'booking' },
   { key: 'schedule', label: 'Lịch trình', icon: 'schedule' },
-  { key: 'customers', label: 'Khách hàng', icon: 'customer' },
   { key: 'reports', label: 'Doanh thu', icon: 'revenue' },
   { key: 'vnpay', label: 'Thanh toán VNPay', icon: 'vnpay' },
 ]
@@ -16,7 +15,6 @@ export const SIDEBAR_MANAGEMENT = [
 export const ADMIN_PAGES = {
   tours: 'Quản lý tour',
   bookings: 'Đặt tour',
-  customers: 'Khách hàng',
   reports: 'Báo cáo',
 }
 

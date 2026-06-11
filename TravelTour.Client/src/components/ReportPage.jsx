@@ -48,7 +48,6 @@ export default function ReportPage() {
           <article><span>{t('totalTours')}</span><strong>{summary.totalTours}</strong></article>
           <article><span>{t('activeTours')}</span><strong>{summary.activeTours}</strong></article>
           <article><span>{t('totalBookings')}</span><strong>{summary.totalBookings}</strong></article>
-          <article><span>{t('totalCustomers')}</span><strong>{summary.totalCustomers}</strong></article>
           <article><span>{t('totalGuests')}</span><strong>{summary.totalGuests}</strong></article>
           <article className="metric-highlight"><span>{t('totalRevenue')}</span><strong>{formatVND(summary.totalRevenue)}</strong></article>
         </section>
