@@ -21,6 +21,7 @@ const VnpayPage = lazy(() => import('./components/VnpayPage'))
 const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'))
 const VnpayRedirectPage = lazy(() => import('./components/VnpayRedirectPage'))
 const UsersPage = lazy(() => import('./components/UsersPage'))
+const CustomerList = lazy(() => import('./components/CustomerList'))
 const SettingsPage = lazy(() => import('./components/SettingsPage'))
 const SummerCampaignPage = lazy(() => import('./components/SummerCampaignPage'))
 
@@ -66,6 +67,7 @@ function App() {
               <Route path="reports" element={<ReportPage />} />
               <Route path="vnpay" element={<VnpayPage />} />
               <Route path="users" element={<UsersPage />} />
+              <Route path="customers" element={<CustomerList />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="promotions" element={<SummerCampaignPage />} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />

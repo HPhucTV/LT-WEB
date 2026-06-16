@@ -22,6 +22,9 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -32,7 +35,7 @@ export default function LoginPage() {
     try {
       const result = mode === 'login'
         ? await authApi.login({ username, password })
-        : await authApi.register({ username, password, fullName })
+        : await authApi.register({ username, password, fullName, email, phone, address })
       const user = login(result)
       toast.success(`Chào mừng, ${user.fullName || user.username}!`)
       navigate(getDashboardPath((user.role || '').toLowerCase()))
@@ -57,7 +60,14 @@ export default function LoginPage() {
             <div className="login-brand"><img className="brand-logo" src={travexLogo} alt="TraveX" /><div><strong>TraveX</strong></div></div>
             <h2>{mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}</h2>
             {error && <p className="form-error">{error}</p>}
-            {mode === 'register' && <label>Họ tên<input value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Nguyễn Văn A" /></label>}
+            {mode === 'register' && (
+              <>
+                <label>Họ tên<input required value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Nguyễn Văn A" /></label>
+                <label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="email@example.com" /></label>
+                <label>Số điện thoại<input value={phone} onChange={event => setPhone(event.target.value)} placeholder="0901234567" /></label>
+                <label>Địa chỉ<input value={address} onChange={event => setAddress(event.target.value)} placeholder="123 Đường ABC..." /></label>
+              </>
+            )}
             <label>Tên đăng nhập<input required value={username} onChange={event => setUsername(event.target.value)} placeholder="admin" /></label>
             <label>Mật khẩu<input type="password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="••••" /></label>
             <button type="submit" className="btn-primary login-btn" disabled={loading}>{loading ? 'Đang xử lý...' : mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}</button>

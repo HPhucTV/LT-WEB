@@ -35,6 +35,22 @@ public class AuthService(AppDbContext db, TokenService tokenService, PasswordSer
         var user = CreateUser(request, role);
 
         db.Users.Add(user);
+
+        if (role == "Customer")
+        {
+            var customer = new Customer
+            {
+                FullName = user.FullName,
+                Email = !string.IsNullOrWhiteSpace(request.Email)
+                    ? request.Email.Trim()
+                    : (request.Username.Contains('@') ? request.Username.Trim() : ""),
+                Phone = request.Phone?.Trim() ?? "",
+                Address = request.Address?.Trim() ?? "",
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Customers.Add(customer);
+        }
+
         await db.SaveChangesAsync();
 
         return ServiceResult<AuthResponse>.Success(ToAuthResponse(user, tokenService.GenerateToken(user)));

@@ -153,14 +153,6 @@ export default function SettingsPage() {
 
           <div className="form-grid">
             <label>
-              {t('theme')}
-              <select value={settings.theme} onChange={e => updateSetting('theme', e.target.value)}>
-                <option value="system">{t('systemTheme')}</option>
-                <option value="light">{t('lightTheme')}</option>
-                <option value="dark">{t('darkTheme')}</option>
-              </select>
-            </label>
-            <label>
               {t('language')}
               <select value={settings.language} onChange={e => updateSetting('language', e.target.value)}>
                 <option value="vi">{t('vietnamese')}</option>

@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
   emailPromos: true,
   inAppNotifications: true,
   compactTables: false,
-  theme: 'system',
+  theme: 'light',
   language: 'vi',
 }
 
@@ -491,8 +491,7 @@ function loadSettings() {
 }
 
 function getResolvedTheme(theme) {
-  if (theme !== 'system') return theme
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return 'light'
 }
 
 export function SettingsProvider({ children }) {

@@ -11,6 +11,7 @@ const PAGE_TITLE_KEYS = {
   tours: 'tour',
   bookings: 'navBookings',
   schedule: 'navSchedule',
+  customers: 'navCustomers',
   reports: 'navReports',
   vnpay: 'navVnpay',
   users: 'navUsers',

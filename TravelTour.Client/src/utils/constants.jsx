@@ -8,6 +8,7 @@ export const SIDEBAR_MAIN = [
 ]
 
 export const SIDEBAR_MANAGEMENT = [
+  { key: 'customers', label: 'Khách hàng', icon: 'customer' },
   { key: 'users', label: 'Người dùng', icon: 'users' },
   { key: 'settings', label: 'Cài đặt', icon: 'settings' },
 ]
