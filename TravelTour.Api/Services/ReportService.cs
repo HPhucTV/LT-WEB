@@ -15,12 +15,12 @@ public class ReportService(AppDbContext db)
         var activeTours = await db.Tours.CountAsync(t => t.IsActive);
         var totalBookings = await db.Bookings.CountAsync();
 
-        var confirmedQuery = db.Bookings.Where(b => b.Status != "Cancelled");
+        var confirmedQuery = db.Bookings.Where(b => b.PaymentStatus == "Paid" && b.Status != "Cancelled");
         var totalRevenue = await confirmedQuery.SumAsync(b => b.TotalAmount);
         var totalGuests = await confirmedQuery.SumAsync(b => b.GuestCount);
 
         var topTours = await db.Bookings
-            .Where(b => b.Status != "Cancelled")
+            .Where(b => b.PaymentStatus == "Paid" && b.Status != "Cancelled")
             .Include(b => b.TourSchedule!)
                 .ThenInclude(s => s.Tour)
             .GroupBy(b => b.TourSchedule!.Tour!.Name)
@@ -40,7 +40,7 @@ public class ReportService(AppDbContext db)
     public async Task<object> RevenueAsync(string? from, string? to)
     {
         var query = db.Bookings
-            .Where(b => b.Status != "Cancelled")
+            .Where(b => b.PaymentStatus == "Paid" && b.Status != "Cancelled")
             .Include(b => b.TourSchedule!)
                 .ThenInclude(s => s.Tour)
             .AsQueryable();
@@ -91,7 +91,7 @@ public class ReportService(AppDbContext db)
     public async Task<ReportExportResult> ExportRevenueAsync(string? from, string? to)
     {
         var query = db.Bookings
-            .Where(b => b.Status != "Cancelled")
+            .Where(b => b.PaymentStatus == "Paid" && b.Status != "Cancelled")
             .Include(b => b.TourSchedule!)
                 .ThenInclude(s => s.Tour)
             .AsQueryable();

@@ -43,7 +43,17 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
         schedule.StartDate = request.StartDate;
         schedule.EndDate = request.EndDate;
         schedule.AvailableSeats = request.AvailableSeats;
-        schedule.Status = request.Status.Trim();
+
+        var newStatus = request.Status.Trim();
+        if (guide != null && (newStatus == "Pending" || newStatus == "Open"))
+        {
+            newStatus = "Assigned";
+        }
+        else if (guide == null && newStatus == "Assigned")
+        {
+            newStatus = "Pending";
+        }
+        schedule.Status = newStatus;
         schedule.GuideUserId = guide?.Id;
         schedule.GuideName = guide?.FullName ?? (string.IsNullOrWhiteSpace(request.GuideName) ? null : request.GuideName.Trim());
         schedule.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
@@ -75,6 +85,15 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
 
         schedule.GuideUserId = guide?.Id;
         schedule.GuideName = guide?.FullName;
+
+        if (guide != null && (schedule.Status == "Pending" || schedule.Status == "Open"))
+        {
+            schedule.Status = "Assigned";
+        }
+        else if (guide == null && schedule.Status == "Assigned")
+        {
+            schedule.Status = "Pending";
+        }
 
         await schedules.SaveChangesAsync();
 
