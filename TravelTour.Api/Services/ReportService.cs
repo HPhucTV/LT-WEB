@@ -48,7 +48,7 @@ public class ReportService(AppDbContext db)
         query = ApplyDateFilter(query, from, to);
 
         var data = await query
-            .OrderByDescending(b => b.CreatedAt)
+            .OrderBy(b => b.Id)
             .Select(b => new
             {
                 b.Id,
@@ -72,7 +72,7 @@ public class ReportService(AppDbContext db)
             .AsQueryable();
 
         query = ApplyDateFilter(query, from, to);
-        var bookings = await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
+        var bookings = await query.OrderBy(b => b.Id).ToListAsync();
 
         var csv = new StringBuilder();
         csv.AppendLine("ID,Tour,Khách hàng,SĐT,Số khách,Tổng tiền,Trạng thái,Ngày tạo");

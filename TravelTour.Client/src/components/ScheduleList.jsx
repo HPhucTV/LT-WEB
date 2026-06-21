@@ -17,7 +17,6 @@ export default function ScheduleList({ tour, onBack }) {
     try { setSchedules(await scheduleApi.listByTour(tour.id)) }
     catch { setSchedules([]) }
   }
-
   async function handleSave(event) {
     event.preventDefault()
     const form = new FormData(event.target)
@@ -40,7 +39,6 @@ export default function ScheduleList({ tour, onBack }) {
       toast.error(err.message)
     }
   }
-
   async function handleDelete(id) {
     if (!confirm('Delete this schedule?')) return
     try {
@@ -51,7 +49,6 @@ export default function ScheduleList({ tour, onBack }) {
       toast.error(err.message)
     }
   }
-
   function statusLabel(status) {
     if (status === 'Open') return t('openRegistration')
     if (status === 'Full') return t('fullStatus')
