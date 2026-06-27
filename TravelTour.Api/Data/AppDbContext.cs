@@ -8,6 +8,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Tour> Tours => Set<Tour>();
     public DbSet<TourSchedule> TourSchedules => Set<TourSchedule>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingPassenger> BookingPassengers => Set<BookingPassenger>();
+    public DbSet<PrivateGroupBookingDetails> PrivateGroupBookingDetails => Set<PrivateGroupBookingDetails>();
+    public DbSet<PrivateGroupContract> PrivateGroupContracts => Set<PrivateGroupContract>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Review> Reviews => Set<Review>();
@@ -32,6 +35,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.Property(s => s.Status).HasMaxLength(40);
             entity.Property(s => s.ScheduleType).HasMaxLength(30).HasDefaultValue("Shared");
+            entity.Property(s => s.Price).HasColumnType("decimal(18,2)");
+            entity.Property(s => s.OriginalPrice).HasColumnType("decimal(18,2)");
             entity.Property(s => s.GuideName).HasMaxLength(120);
             entity.Property(s => s.Note).HasMaxLength(500);
             entity.HasIndex(s => s.TourId);
@@ -63,6 +68,60 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(b => b.TourScheduleId);
             entity.HasIndex(b => b.Status);
             entity.HasIndex(b => b.CreatedAt);
+
+            entity.HasOne(b => b.PrivateGroupBookingDetails)
+                .WithOne(details => details.Booking)
+                .HasForeignKey<PrivateGroupBookingDetails>(details => details.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(b => b.PrivateGroupContract)
+                .WithOne(contract => contract.Booking)
+                .HasForeignKey<PrivateGroupContract>(contract => contract.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PrivateGroupBookingDetails>(entity =>
+        {
+            entity.HasKey(details => details.BookingId);
+            entity.Property(details => details.RequestNote).HasMaxLength(500);
+            entity.Property(details => details.EstimatedAmount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<PrivateGroupContract>(entity =>
+        {
+            entity.HasKey(contract => contract.BookingId);
+            entity.Property(contract => contract.SalesName).HasMaxLength(120);
+            entity.Property(contract => contract.ContractStatus).HasMaxLength(40).HasDefaultValue("None");
+            entity.Property(contract => contract.ContractAmount).HasColumnType("decimal(18,2)");
+            entity.Property(contract => contract.PaymentTerms).HasMaxLength(2000);
+            entity.Property(contract => contract.CancellationTerms).HasMaxLength(2000);
+            entity.Property(contract => contract.DepositAmount).HasColumnType("decimal(18,2)");
+            entity.Property(contract => contract.RemainingAmount).HasColumnType("decimal(18,2)");
+            entity.Property(contract => contract.DepositPaymentStatus).HasMaxLength(40).HasDefaultValue("Unpaid");
+            entity.Property(contract => contract.RemainingPaymentStatus).HasMaxLength(40).HasDefaultValue("Unpaid");
+            entity.Property(contract => contract.DepositTransactionRef).HasMaxLength(80);
+            entity.Property(contract => contract.RemainingTransactionRef).HasMaxLength(80);
+            entity.Property(contract => contract.SalesSignedByName).HasMaxLength(120);
+            entity.Property(contract => contract.CustomerSignedByName).HasMaxLength(120);
+            entity.Property(contract => contract.CustomerSignatureStatus).HasMaxLength(40).HasDefaultValue("Pending");
+            entity.HasIndex(contract => contract.SalesUserId);
+            entity.HasOne(contract => contract.SalesUser)
+                .WithMany()
+                .HasForeignKey(contract => contract.SalesUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<BookingPassenger>(entity =>
+        {
+            entity.Property(p => p.FullName).HasMaxLength(160);
+            entity.Property(p => p.PassengerType).HasMaxLength(20);
+            entity.Property(p => p.IdentityNumber).HasMaxLength(40);
+            entity.Property(p => p.Phone).HasMaxLength(30);
+            entity.HasIndex(p => p.BookingId);
+            entity.HasOne(p => p.Booking)
+                .WithMany(b => b.Passengers)
+                .HasForeignKey(p => p.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<User>(entity =>

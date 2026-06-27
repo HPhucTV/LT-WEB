@@ -10,9 +10,9 @@ public class PaymentsController(PaymentService paymentService) : ControllerBase
 {
     [Authorize]
     [HttpPost("vnpay/bookings/{bookingId:int}")]
-    public async Task<IActionResult> CreateVnpayPayment(int bookingId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateVnpayPayment(int bookingId, [FromQuery] string? stage, CancellationToken cancellationToken)
     {
-        var result = await paymentService.CreateVnpayPaymentAsync(bookingId, GetClientIpAddress(), cancellationToken);
+        var result = await paymentService.CreateVnpayPaymentAsync(bookingId, stage ?? "shared", GetClientIpAddress(), cancellationToken);
         if (result.IsNotFound) return NotFound();
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }

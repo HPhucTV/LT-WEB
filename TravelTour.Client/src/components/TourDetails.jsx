@@ -102,6 +102,14 @@ export default function TourDetails() {
   const hasDiscount = tour.originalPrice && tour.originalPrice > tour.price
   const minGroupGuests = tour.minGroupGuests || 10
   const todayDate = new Date().toISOString().slice(0, 10)
+  const selectedScheduleInfo = schedules.find(schedule => String(schedule.id) === String(selectedSchedule))
+  const unitPrice = bookingType === 'Shared' && selectedScheduleInfo
+    ? Number(selectedScheduleInfo.price || tour.price || 0)
+    : Number(tour.price || 0)
+  const originalUnitPrice = bookingType === 'Shared' && selectedScheduleInfo
+    ? Number(selectedScheduleInfo.originalPrice || tour.originalPrice || 0)
+    : Number(tour.originalPrice || 0)
+  const priceHasDiscount = originalUnitPrice > unitPrice
   const canShowTotal = bookingType === 'PrivateGroup' ? requestedStartDate : selectedSchedule
 
   function handleBookingTypeChange(value) {
@@ -124,7 +132,10 @@ export default function TourDetails() {
           </a>
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn-nav" onClick={() => navigate((user.role || '').toLowerCase() === 'admin' ? '/admin' : (user.role || '').toLowerCase() === 'staff' ? '/staff' : '/customer')}>Bảng điều khiển</button>
+              <button className="btn-nav" onClick={() => {
+                const role = (user.role || '').toLowerCase()
+                navigate(role === 'admin' ? '/admin' : role === 'sales' ? '/sales' : role === 'staff' ? '/staff' : '/customer')
+              }}>Bảng điều khiển</button>
               <span className="nav-user-name">Chào, {user.fullName}</span>
             </div>
           ) : <button className="btn-nav" onClick={() => navigate('/login')}>Đăng nhập</button>}
@@ -142,7 +153,7 @@ export default function TourDetails() {
               return
             }
             const role = (user.role || '').toLowerCase()
-            navigate(role === 'admin' ? '/admin/tours' : role === 'staff' ? '/staff/schedule' : '/customer/tours')
+            navigate(role === 'admin' ? '/admin/tours' : role === 'sales' ? '/sales/contracts' : role === 'staff' ? '/staff/schedule' : '/customer/tours')
           }}>Tour</a>
           <span className="breadcrumb-sep">›</span><span className="breadcrumb-current">{tour.name}</span>
         </nav>
@@ -215,8 +226,9 @@ export default function TourDetails() {
           <aside className="tour-sidebar">
             <div className="booking-card">
               <div className="booking-price-display">
-                {hasDiscount && <span className="price-original">{formatVND(tour.originalPrice)}</span>}
-                <span className="booking-price">{formatVND(tour.price)}</span>
+                <small>Giá dự kiến</small>
+                {priceHasDiscount && <span className="price-original">{formatVND(originalUnitPrice)}</span>}
+                <span className="booking-price">{formatVND(unitPrice)}</span>
                 <span className="booking-price-unit">/ người</span>
               </div>
               <h3>Đặt tour ngay</h3>
@@ -225,11 +237,11 @@ export default function TourDetails() {
                 {bookingType === 'PrivateGroup' ? (
                   <div className="booking-field"><label>Ngày khởi hành mong muốn</label><input type="date" min={todayDate} required value={requestedStartDate} onChange={event => setRequestedStartDate(event.target.value)} /></div>
                 ) : (
-                  <div className="booking-field"><label>Lịch khởi hành</label><select required value={selectedSchedule} onChange={event => setSelectedSchedule(event.target.value)}><option value="">-- Chọn lịch --</option>{schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - Còn {schedule.availableSeats} chỗ</option>)}</select></div>
+                  <div className="booking-field"><label>Lịch khởi hành</label><select required value={selectedSchedule} onChange={event => setSelectedSchedule(event.target.value)}><option value="">-- Chọn lịch --</option>{schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{formatDate(schedule.startDate)} - Còn {schedule.availableSeats} chỗ - {formatVND(schedule.price || tour.price)}</option>)}</select></div>
                 )}
                 <div className="booking-field"><label>Số khách</label><input type="number" min={bookingType === 'PrivateGroup' ? minGroupGuests : 1} max={tour.maxGuests || undefined} required value={guestCount} onChange={event => setGuestCount(event.target.value)} /></div>
-                {bookingType === 'PrivateGroup' && <p className="booking-hint">Đi theo đoàn cần ít nhất {minGroupGuests} khách. Bạn chọn ngày riêng, TraveX sẽ phân nhân viên và xác nhận trước khi thanh toán.</p>}
-                {canShowTotal && <div className="booking-total"><span>Tạm tính:</span><strong>{formatVND(tour.price * Number(guestCount || 0))}</strong></div>}
+                {bookingType === 'PrivateGroup' && <p className="booking-hint">Đi theo đoàn cần ít nhất {minGroupGuests} khách. Bạn chọn ngày riêng, Sales sẽ tiếp nhận hợp đồng công ty và xác nhận trước khi thanh toán.</p>}
+                {canShowTotal && <div className="booking-total"><span>{bookingType === 'PrivateGroup' ? 'Tạm tính dự kiến:' : 'Tạm tính:'}</span><strong>{formatVND(unitPrice * Number(guestCount || 0))}</strong></div>}
                 {!user ? <button type="button" className="btn-primary full-width booking-submit" onClick={() => navigate('/login')}>Đăng nhập để đặt tour</button> : <button type="submit" className="btn-primary full-width booking-submit">{bookingType === 'PrivateGroup' ? 'Gửi yêu cầu đặt đoàn' : 'Tiếp tục thanh toán'}</button>}
               </form>
             </div>

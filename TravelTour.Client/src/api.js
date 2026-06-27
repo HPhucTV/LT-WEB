@@ -133,14 +133,19 @@ export const guideApi = {
 // ─── Bookings ───────────────────────────────────────────────────────────────
 
 export const bookingApi = {
-  list: () => request('/bookings'),              // Admin/Staff only
+  list: () => request('/bookings'),              // Admin/Staff/Sales
   mine: () => request('/bookings/mine'),         // Customer: chỉ booking của mình
   create: (data) => request('/bookings', { method: 'POST', body: JSON.stringify(data) }),
+  getContract: (id) => request(`/bookings/${id}/contract`),
+  signContract: (id, data) =>
+    request(`/bookings/${id}/contract-customer-sign`, { method: 'PUT', body: JSON.stringify(data) }),
   updateStatus: (id, status) =>
     request(`/bookings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
   assignGuide: (id, guideUserId) =>
     request(`/bookings/${id}/assign-guide`, { method: 'PUT', body: JSON.stringify({ guideUserId }) }),
-  payWithVnpay: (id) => request(`/payments/vnpay/bookings/${id}`, { method: 'POST' }),
+  confirmContract: (id, data) =>
+    request(`/bookings/${id}/contract-confirmation`, { method: 'PUT', body: JSON.stringify(data) }),
+  payWithVnpay: (id, stage = 'shared') => request(`/payments/vnpay/bookings/${id}?stage=${encodeURIComponent(stage)}`, { method: 'POST' }),
   remove: (id) => request(`/bookings/${id}`, { method: 'DELETE' }),
 }
 
@@ -200,6 +205,7 @@ export const reviewApi = {
 
 export const userApi = {
   list: () => request('/users'),
+  sales: () => request('/users/sales'),
   updateRole: (id, role) => request(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   remove: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 }

@@ -9,7 +9,7 @@ export default function Dashboard({ tours = [], bookings = [] }) {
     <section className="metrics" aria-label="Thống kê">
       <article><span>Tổng tour</span><strong>{tours.length}</strong></article>
       <article><span>Đang mở bán</span><strong>{activeTours}</strong></article>
-      <article><span>Giá trung bình</span><strong>{formatVND(avgPrice)}</strong></article>
+      <article><span>Giá dự kiến TB</span><strong>{formatVND(avgPrice)}</strong></article>
       <article><span>Tổng đặt tour</span><strong>{bookings.length}</strong></article>
       <article><span>Doanh thu</span><strong>{formatVND(totalRevenue)}</strong></article>
     </section>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TravelTour.Api.Data;
@@ -11,9 +12,11 @@ using TravelTour.Api.Data;
 namespace TravelTour.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624132046_RemoveBookingCompanyFields")]
+    partial class RemoveBookingCompanyFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,12 +33,32 @@ namespace TravelTour.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AdultCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("BookingType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasDefaultValue("Shared");
+
+                    b.Property<string>("CancellationTerms")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ChildCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ContractAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ContractStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("None");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -59,6 +82,40 @@ namespace TravelTour.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
+
+                    b.Property<string>("CustomerSignatureStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("CustomerSignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerSignedByName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("DepositPaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepositPaymentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Unpaid");
+
+                    b.Property<string>("DepositTransactionRef")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<decimal>("EstimatedAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("GuestCount")
                         .HasColumnType("integer");
@@ -88,6 +145,51 @@ namespace TravelTour.Api.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("PaymentTerms")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("RemainingAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateOnly?>("RemainingDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("RemainingPaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RemainingPaymentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Unpaid");
+
+                    b.Property<string>("RemainingTransactionRef")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("RequestNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SalesName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("SalesSignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SalesSignedByName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int?>("SalesSignedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SalesUserId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -111,6 +213,8 @@ namespace TravelTour.Api.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("SalesUserId");
 
                     b.HasIndex("Status");
 
@@ -231,127 +335,6 @@ namespace TravelTour.Api.Migrations
                     b.HasIndex("StartDate", "EndDate");
 
                     b.ToTable("GuideAvailabilities");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.PrivateGroupBookingDetails", b =>
-                {
-                    b.Property<int>("BookingId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AdultCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChildCount")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("EstimatedAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("RequestNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("BookingId");
-
-                    b.ToTable("PrivateGroupBookingDetails");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.PrivateGroupContract", b =>
-                {
-                    b.Property<int>("BookingId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CancellationTerms")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal>("ContractAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ContractStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("None");
-
-                    b.Property<string>("CustomerSignatureStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("Pending");
-
-                    b.Property<DateTime?>("CustomerSignedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CustomerSignedByName")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<decimal>("DepositAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("DepositPaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DepositPaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("Unpaid");
-
-                    b.Property<string>("DepositTransactionRef")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("PaymentTerms")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal>("RemainingAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateOnly?>("RemainingDueDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime?>("RemainingPaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RemainingPaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("Unpaid");
-
-                    b.Property<string>("RemainingTransactionRef")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("SalesName")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<DateTime?>("SalesSignedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SalesSignedByName")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<int?>("SalesSignedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SalesUserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("BookingId");
-
-                    b.HasIndex("SalesUserId");
-
-                    b.ToTable("PrivateGroupContracts");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.Review", b =>
@@ -575,6 +558,11 @@ namespace TravelTour.Api.Migrations
                         .WithMany("Bookings")
                         .HasForeignKey("CustomerId");
 
+                    b.HasOne("TravelTour.Api.Models.User", "SalesUser")
+                        .WithMany()
+                        .HasForeignKey("SalesUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TravelTour.Api.Models.TourSchedule", "TourSchedule")
                         .WithMany()
                         .HasForeignKey("TourScheduleId")
@@ -582,6 +570,8 @@ namespace TravelTour.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+
+                    b.Navigation("SalesUser");
 
                     b.Navigation("TourSchedule");
                 });
@@ -606,35 +596,6 @@ namespace TravelTour.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("GuideUser");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.PrivateGroupBookingDetails", b =>
-                {
-                    b.HasOne("TravelTour.Api.Models.Booking", "Booking")
-                        .WithOne("PrivateGroupBookingDetails")
-                        .HasForeignKey("TravelTour.Api.Models.PrivateGroupBookingDetails", "BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-                });
-
-            modelBuilder.Entity("TravelTour.Api.Models.PrivateGroupContract", b =>
-                {
-                    b.HasOne("TravelTour.Api.Models.Booking", "Booking")
-                        .WithOne("PrivateGroupContract")
-                        .HasForeignKey("TravelTour.Api.Models.PrivateGroupContract", "BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TravelTour.Api.Models.User", "SalesUser")
-                        .WithMany()
-                        .HasForeignKey("SalesUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("SalesUser");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.Review", b =>
@@ -676,10 +637,6 @@ namespace TravelTour.Api.Migrations
             modelBuilder.Entity("TravelTour.Api.Models.Booking", b =>
                 {
                     b.Navigation("Passengers");
-
-                    b.Navigation("PrivateGroupBookingDetails");
-
-                    b.Navigation("PrivateGroupContract");
                 });
 
             modelBuilder.Entity("TravelTour.Api.Models.Customer", b =>

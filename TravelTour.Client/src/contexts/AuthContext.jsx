@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback((result) => {
     setToken(result.token)
-    const u = result.user || { username: result.username, fullName: result.fullName, role: result.role }
+    const u = result.user || { id: result.id, username: result.username, fullName: result.fullName, role: result.role }
     setUser(u)
     return u
   }, [])
@@ -27,10 +27,11 @@ export function AuthProvider({ children }) {
   const role = (user?.role || '').toLowerCase()
   const isAdmin = role === 'admin'
   const isStaff = role === 'staff'
-  const hasAdminAccess = isAdmin || isStaff
+  const isSales = role === 'sales'
+  const hasAdminAccess = isAdmin || isSales
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isStaff, hasAdminAccess }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isStaff, isSales, hasAdminAccess }}>
       {children}
     </AuthContext.Provider>
   )

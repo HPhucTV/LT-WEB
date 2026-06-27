@@ -56,7 +56,7 @@ public class GuideAvailabilitiesController(GuideAvailabilityService guideAvailab
     }
 
     [HttpGet("/api/guides/available")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Sales")]
     public async Task<IActionResult> GetAvailableGuides([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
     {
         var result = await guideAvailabilityService.GetAvailableGuidesAsync(startDate, endDate);

@@ -15,4 +15,14 @@ public class UserRepository(AppDbContext db) : IUserRepository
 
         return await db.Users.FirstOrDefaultAsync(user => user.Id == id && user.Role == "Staff");
     }
+
+    public async Task<User?> GetSalesByIdAsync(int? id)
+    {
+        if (id is null)
+        {
+            return null;
+        }
+
+        return await db.Users.FirstOrDefaultAsync(user => user.Id == id && user.Role == "Sales");
+    }
 }

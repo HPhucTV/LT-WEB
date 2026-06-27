@@ -18,10 +18,42 @@ public class BookingRequest
 
     public string BookingType { get; init; } = "Shared";
 
+    public string? RequestNote { get; init; }
+
+    public int AdultCount { get; init; }
+
+    public int ChildCount { get; init; }
+
+    public List<BookingPassengerRequest> Passengers { get; init; } = [];
+
     public string? VoucherCode { get; init; }
 }
 
 public record BookingStatusUpdate(string Status);
+
+public record BookingPassengerRequest(
+    string FullName,
+    DateOnly DateOfBirth,
+    string PassengerType,
+    string? IdentityNumber,
+    string Phone);
+
+public record ContractConfirmationRequest(
+    int SalesUserId,
+    int GuideUserId,
+    decimal ContractAmount,
+    string? PaymentTerms,
+    string? CancellationTerms);
+
+public record CustomerContractSignatureRequest(string? SignedByName);
+
+public record BookingPassengerResponse(
+    int Id,
+    string FullName,
+    DateOnly DateOfBirth,
+    string PassengerType,
+    string? IdentityNumber,
+    string Phone);
 
 public record BookingResponse(
     int Id,
@@ -34,6 +66,28 @@ public record BookingResponse(
     string CustomerEmail,
     int GuestCount,
     string BookingType,
+    string? RequestNote,
+    string? PaymentTerms,
+    string? CancellationTerms,
+    int? SalesUserId,
+    string? SalesName,
+    string ContractStatus,
+    decimal ContractAmount,
+    decimal EstimatedAmount,
+    int AdultCount,
+    int ChildCount,
+    decimal DepositAmount,
+    decimal RemainingAmount,
+    DateOnly? RemainingDueDate,
+    string DepositPaymentStatus,
+    string RemainingPaymentStatus,
+    DateTime? DepositPaidAt,
+    DateTime? RemainingPaidAt,
+    string? SalesSignedByName,
+    DateTime? SalesSignedAt,
+    string? CustomerSignedByName,
+    DateTime? CustomerSignedAt,
+    string CustomerSignatureStatus,
     string? VoucherCode,
     decimal VoucherDiscountAmount,
     string ScheduleType,
@@ -46,4 +100,5 @@ public record BookingResponse(
     string PaymentStatus,
     string? TransactionId,
     DateTime? PaidAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    List<BookingPassengerResponse> Passengers);

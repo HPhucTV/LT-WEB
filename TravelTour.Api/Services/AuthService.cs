@@ -99,7 +99,7 @@ public class AuthService(AppDbContext db, TokenService tokenService, PasswordSer
 
     private static AuthResponse ToAuthResponse(User user, string token)
     {
-        return new AuthResponse(token, user.Username, user.FullName, user.Role);
+        return new AuthResponse(token, user.Id, user.Username, user.FullName, user.Role);
     }
 
     private static string? ValidateRegisterInput(string username, string password, bool checkPasswordLength)

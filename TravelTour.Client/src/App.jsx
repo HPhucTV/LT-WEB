@@ -10,6 +10,7 @@ const HomePage = lazy(() => import('./components/HomePage'))
 const TourDetails = lazy(() => import('./components/TourDetails'))
 const LoginPage = lazy(() => import('./components/LoginPage'))
 const CheckoutPage = lazy(() => import('./components/CheckoutPage'))
+const ContractPage = lazy(() => import('./components/ContractPage'))
 
 /* ─── Admin pages ─── */
 const AdminLayout = lazy(() => import('./components/AdminLayout'))
@@ -24,6 +25,7 @@ const UsersPage = lazy(() => import('./components/UsersPage'))
 const CustomerList = lazy(() => import('./components/CustomerList'))
 const SettingsPage = lazy(() => import('./components/SettingsPage'))
 const SummerCampaignPage = lazy(() => import('./components/SummerCampaignPage'))
+const SalesLayout = lazy(() => import('./components/SalesLayout'))
 
 /* ─── Staff pages ─── */
 const StaffLayout = lazy(() => import('./components/staff/StaffLayout'))
@@ -83,12 +85,21 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
+            {/* Sales — company group contracts */}
+            <Route path="/sales" element={<ProtectedRoute allowedRoles={['sales']}><SalesLayout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="contracts" replace />} />
+              <Route path="contracts" element={<BookingList contractOnly />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="contracts" replace />} />
+            </Route>
+
             {/* Customer — customer role or logged in without specific admin/staff role */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer', '']}><CustomerLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="tours" element={<TourList />} />
               <Route path="my-tours" element={<BookingList />} />
+              <Route path="contracts/:id" element={<ContractPage />} />
               <Route path="reviews" element={<CustomerReviews />} />
               <Route path="rewards" element={<CustomerRewards />} />
               <Route path="settings" element={<SettingsPage />} />

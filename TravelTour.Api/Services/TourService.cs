@@ -183,6 +183,8 @@ public class TourService(
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             AvailableSeats = request.AvailableSeats,
+            Price = request.Price,
+            OriginalPrice = request.OriginalPrice,
             Status = request.Status.Trim(),
             ScheduleType = "Shared",
             GuideUserId = guide?.Id,
@@ -195,8 +197,8 @@ public class TourService(
 
         return ServiceResult<ScheduleResponse>.Success(new ScheduleResponse(
             schedule.Id, schedule.TourId, tour.Name, schedule.StartDate, schedule.EndDate,
-            schedule.AvailableSeats, schedule.Status, schedule.ScheduleType, schedule.GuideUserId, schedule.GuideName,
-            schedule.Note, 0));
+            schedule.AvailableSeats, schedule.Price, schedule.OriginalPrice, schedule.Status, schedule.ScheduleType,
+            schedule.GuideUserId, schedule.GuideName, schedule.Note, 0));
     }
 
     private static ScheduleResponse ToScheduleResponse(TourSchedule schedule, int bookedSeats)
@@ -208,6 +210,8 @@ public class TourService(
             schedule.StartDate,
             schedule.EndDate,
             schedule.AvailableSeats,
+            schedule.Price,
+            schedule.OriginalPrice,
             schedule.Status,
             schedule.ScheduleType,
             schedule.GuideUserId,
@@ -250,6 +254,9 @@ public class TourService(
     {
         if (request.EndDate < request.StartDate) return "Ngày kết thúc phải sau ngày bắt đầu.";
         if (request.AvailableSeats <= 0) return "Số chỗ phải lớn hơn 0.";
+        if (request.Price <= 0) return "Giá lịch trình phải lớn hơn 0.";
+        if (request.OriginalPrice < 0) return "Giá gốc lịch trình không được âm.";
+        if (request.OriginalPrice > 0 && request.Price > request.OriginalPrice) return "Giá lịch trình sau giảm không được lớn hơn giá gốc.";
         if (string.IsNullOrWhiteSpace(request.Status)) return "Trạng thái không được để trống.";
         return null;
     }

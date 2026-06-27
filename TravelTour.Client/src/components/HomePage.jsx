@@ -245,7 +245,10 @@ export default function HomePage() {
 
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn-nav" onClick={() => navigate((user.role || '').toLowerCase() === 'admin' ? '/admin' : (user.role || '').toLowerCase() === 'staff' ? '/staff' : '/customer')}>Bảng điều khiển</button>
+              <button className="btn-nav" onClick={() => {
+                const role = (user.role || '').toLowerCase()
+                navigate(role === 'admin' ? '/admin' : role === 'sales' ? '/sales' : role === 'staff' ? '/staff' : '/customer')
+              }}>Bảng điều khiển</button>
               <span className="nav-user-name">Chào, {user.fullName || user.username}</span>
               <button className="btn-nav btn-nav-outline" onClick={logout}>Đăng xuất</button>
             </div>

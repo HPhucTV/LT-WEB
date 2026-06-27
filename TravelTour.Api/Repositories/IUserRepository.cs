@@ -5,4 +5,5 @@ namespace TravelTour.Api.Repositories;
 public interface IUserRepository
 {
     Task<User?> GetGuideByIdAsync(int? id);
+    Task<User?> GetSalesByIdAsync(int? id);
 }

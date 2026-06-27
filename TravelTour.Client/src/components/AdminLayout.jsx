@@ -22,6 +22,7 @@ const PAGE_TITLE_KEYS = {
 function roleLabel(role, t) {
   switch ((role || '').toLowerCase()) {
     case 'admin': return t('adminRole')
+    case 'sales': return t('salesRole')
     case 'staff': return t('staffRole')
     case 'customer': return t('customerRole')
     default: return t('adminRole')

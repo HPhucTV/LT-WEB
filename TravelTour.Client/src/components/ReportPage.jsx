@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { reportApi, downloadBlob } from '../api'
+import Pagination from './Pagination'
 import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
+import { paginateItems } from '../utils/pagination'
 import { formatVND, formatDate, bookingStatusLabel } from '../utils/format'
 
 export default function ReportPage() {
@@ -11,6 +13,9 @@ export default function ReportPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [revenue, setRevenue] = useState(null)
+  const [topToursPage, setTopToursPage] = useState(1)
+  const [revenuePage, setRevenuePage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => { reportApi.summary().then(setSummary).catch(() => {}) }, [])
 
@@ -23,19 +28,41 @@ export default function ReportPage() {
   }
 
   async function loadRevenue() {
-    try { setRevenue(await reportApi.revenue(from, to)) }
-    catch (err) { toast.error(err.message) }
+    try {
+      setRevenue(await reportApi.revenue(from, to))
+      setRevenuePage(1)
+    } catch (err) {
+      toast.error(err.message)
+    }
   }
 
   async function handleExportBookings() {
-    try { downloadBlob(await reportApi.exportBookings(from, to), 'bookings.csv'); toast.success('CSV') }
-    catch (err) { toast.error(err.message) }
+    try {
+      downloadBlob(await reportApi.exportBookings(from, to), 'bookings.csv')
+      toast.success('Đã xuất CSV đặt tour.')
+    } catch (err) {
+      toast.error(err.message)
+    }
   }
 
   async function handleExportRevenue() {
-    try { downloadBlob(await reportApi.exportRevenue(from, to), 'revenue.csv'); toast.success('CSV') }
-    catch (err) { toast.error(err.message) }
+    try {
+      downloadBlob(await reportApi.exportRevenue(from, to), 'revenue.csv')
+      toast.success('Đã xuất CSV doanh thu.')
+    } catch (err) {
+      toast.error(err.message)
+    }
   }
+
+  const topToursPagination = useMemo(
+    () => paginateItems(summary?.topTours || [], topToursPage, pageSize),
+    [pageSize, summary?.topTours, topToursPage],
+  )
+
+  const revenuePagination = useMemo(
+    () => paginateItems(revenue?.items || [], revenuePage, pageSize),
+    [pageSize, revenue?.items, revenuePage],
+  )
 
   return (
     <>
@@ -56,11 +83,34 @@ export default function ReportPage() {
       {summary?.topTours?.length > 0 && (
         <>
           <h3 style={{ margin: '0 0 12px' }}>{t('topTours')}</h3>
-          <div className="table-wrap" style={{ marginBottom: 24 }}>
-            <table><thead><tr><th>{t('tour')}</th><th>{t('bookingCount')}</th><th>{t('revenue')}</th></tr></thead>
-              <tbody>{summary.topTours.map((item, index) => <tr key={index}><td>{item.tourName}</td><td>{item.bookingCount}</td><td>{formatVND(item.revenue)}</td></tr>)}</tbody>
+          <div className="table-wrap" style={{ marginBottom: 12 }}>
+            <table>
+              <thead><tr><th>{t('tour')}</th><th>{t('bookingCount')}</th><th>{t('revenue')}</th></tr></thead>
+              <tbody>
+                {topToursPagination.items.map((item, index) => (
+                  <tr key={`${item.tourName}-${index}`}>
+                    <td>{item.tourName}</td>
+                    <td>{item.bookingCount}</td>
+                    <td>{formatVND(item.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={topToursPagination.currentPage}
+            totalPages={topToursPagination.totalPages}
+            totalItems={topToursPagination.totalItems}
+            startItem={topToursPagination.startItem}
+            endItem={topToursPagination.endItem}
+            pageSize={topToursPagination.pageSize}
+            onPageChange={setTopToursPage}
+            onPageSizeChange={value => {
+              setPageSize(value)
+              setTopToursPage(1)
+            }}
+            itemLabel="tour nổi bật"
+          />
         </>
       )}
 
@@ -76,12 +126,40 @@ export default function ReportPage() {
         <>
           <p style={{ fontWeight: 700, fontSize: 18, margin: '16px 0 12px' }}>{t('revenue')}: {formatVND(revenue.totalRevenue)}</p>
           {revenue.items.length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>#</th><th>{t('tour')}</th><th>{t('customerName')}</th><th>{t('guestCount')}</th><th>{t('totalAmount')}</th><th>{t('status')}</th><th>{t('createdDate')}</th></tr></thead>
-                <tbody>{revenue.items.map(item => <tr key={item.id}><td>{item.id}</td><td>{item.tourName}</td><td>{item.customerName}</td><td>{item.guestCount}</td><td>{formatVND(item.totalAmount)}</td><td>{bookingLabel(item.status)}</td><td>{formatDate(item.createdAt)}</td></tr>)}</tbody>
-              </table>
-            </div>
+            <>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>#</th><th>{t('tour')}</th><th>{t('customerName')}</th><th>{t('guestCount')}</th><th>{t('totalAmount')}</th><th>{t('status')}</th><th>{t('createdDate')}</th></tr></thead>
+                  <tbody>
+                    {revenuePagination.items.map(item => (
+                      <tr key={item.id}>
+                        <td>{item.id}</td>
+                        <td>{item.tourName}</td>
+                        <td>{item.customerName}</td>
+                        <td>{item.guestCount}</td>
+                        <td>{formatVND(item.totalAmount)}</td>
+                        <td>{bookingLabel(item.status)}</td>
+                        <td>{formatDate(item.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={revenuePagination.currentPage}
+                totalPages={revenuePagination.totalPages}
+                totalItems={revenuePagination.totalItems}
+                startItem={revenuePagination.startItem}
+                endItem={revenuePagination.endItem}
+                pageSize={revenuePagination.pageSize}
+                onPageChange={setRevenuePage}
+                onPageSizeChange={value => {
+                  setPageSize(value)
+                  setRevenuePage(1)
+                }}
+                itemLabel="bản ghi doanh thu"
+              />
+            </>
           )}
           {revenue.items.length > 0 && (
             <div className="chart-container">

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { guideApi, scheduleApi, tourApi } from '../../api'
+import Pagination from '../Pagination'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useToast } from '../../contexts/ToastContext'
-import { formatDate } from '../../utils/format'
+import { paginateItems } from '../../utils/pagination'
+import { formatDate, formatVND } from '../../utils/format'
 
 const STATUS_VALUES = ['Open', 'Pending', 'Assigned', 'Closed', 'Full', 'Departed', 'Completed']
 
@@ -40,14 +42,17 @@ export default function StaffSchedule({ canManage = false }) {
   const [formOpen, setFormOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [formDates, setFormDates] = useState({ startDate: '', endDate: '' })
+  const [formTourId, setFormTourId] = useState('')
   const [availableGuides, setAvailableGuides] = useState([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => { loadData() }, [])
 
   function statusLabel(status) {
     if (status === 'Open') return t('openRegistration')
-    if (status === 'Pending') return 'Chờ phân nhân viên'
-    if (status === 'Assigned') return 'Đã phân nhân viên'
+    if (status === 'Pending') return 'Chờ xử lý'
+    if (status === 'Assigned') return 'Đã phân HDV'
     if (status === 'Closed') return t('closedStatus')
     if (status === 'Full') return t('fullStatus')
     if (status === 'Departed') return t('departedStatus')
@@ -76,6 +81,7 @@ export default function StaffSchedule({ canManage = false }) {
       return matchesTour && matchesStatus && (!keyword || haystack.includes(keyword))
     })
   }, [canManage, filter, schedules, user])
+  const pagination = useMemo(() => paginateItems(filteredSchedules, page, pageSize), [filteredSchedules, page, pageSize])
 
   const stats = useMemo(() => {
     const visibleSchedules = canManage ? schedules : schedules.filter(item => isAssignedToGuide(item, user))
@@ -87,6 +93,17 @@ export default function StaffSchedule({ canManage = false }) {
       return acc
     }, { total: 0, open: 0, booked: 0, available: 0 })
   }, [canManage, schedules, user])
+  const selectedTour = tours.find(tour => String(tour.id) === String(formTourId))
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter.keyword, filter.status, filter.tourId])
+
+  useEffect(() => {
+    if (pagination.currentPage !== page) {
+      setPage(pagination.currentPage)
+    }
+  }, [page, pagination.currentPage])
 
   useEffect(() => {
     if (!canManage || !formOpen || !formDates.startDate || !formDates.endDate) {
@@ -101,12 +118,14 @@ export default function StaffSchedule({ canManage = false }) {
 
   function openCreateForm() {
     setEditItem(null)
+    setFormTourId('')
     setFormDates({ startDate: '', endDate: '' })
     setFormOpen(true)
   }
 
   function openEditForm(item) {
     setEditItem(item)
+    setFormTourId(item.tourId || '')
     setFormDates({ startDate: toDateInput(item.startDate), endDate: toDateInput(item.endDate) })
     setFormOpen(true)
   }
@@ -119,6 +138,8 @@ export default function StaffSchedule({ canManage = false }) {
       startDate: form.get('startDate'),
       endDate: form.get('endDate'),
       availableSeats: Number(form.get('availableSeats')),
+      price: Number(form.get('price')),
+      originalPrice: Number(form.get('originalPrice') || 0),
       status: form.get('status'),
       guideUserId: form.get('guideUserId') ? Number(form.get('guideUserId')) : null,
       guideName: null,
@@ -142,7 +163,7 @@ export default function StaffSchedule({ canManage = false }) {
   }
 
   async function handleDelete(item) {
-    if (!confirm(`Delete schedule "${item.tourName}"?`)) return
+    if (!confirm(`Bạn có chắc muốn xóa lịch "${item.tourName}"?`)) return
     try {
       await scheduleApi.remove(item.id)
       toast.success(t('delete'))
@@ -183,53 +204,71 @@ export default function StaffSchedule({ canManage = false }) {
       {filteredSchedules.length === 0 ? (
         <p className="empty-msg">{t('matchingScheduleEmpty')}</p>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t('tour')}</th>
-                <th>{t('duration')}</th>
-                <th>Loại lịch</th>
-                <th>{t('guide')}</th>
-                <th>{t('progress')}</th>
-                <th>{t('status')}</th>
-                <th>{t('note')}</th>
-                {canManage && <th>{t('action')}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSchedules.map(item => {
-                const isPrivateGroup = item.scheduleType === 'PrivateGroup'
-                const booked = item.bookedSeats || 0
-                const totalSeats = isPrivateGroup ? (item.availableSeats || booked) : booked + (item.availableSeats || 0)
-                const percent = totalSeats > 0 ? Math.round((booked / totalSeats) * 100) : 0
+        <>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t('tour')}</th>
+                  <th>{t('duration')}</th>
+                  <th>Loại lịch</th>
+                  <th>{t('priceVnd')}</th>
+                  <th>{t('guide')}</th>
+                  <th>{t('progress')}</th>
+                  <th>{t('status')}</th>
+                  <th>{t('note')}</th>
+                  {canManage && <th>{t('action')}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {pagination.items.map(item => {
+                  const isPrivateGroup = item.scheduleType === 'PrivateGroup'
+                  const booked = item.bookedSeats || 0
+                  const totalSeats = isPrivateGroup ? (item.availableSeats || booked) : booked + (item.availableSeats || 0)
+                  const percent = totalSeats > 0 ? Math.round((booked / totalSeats) * 100) : 0
 
-                return (
-                  <tr key={item.id}>
-                    <td><strong>{item.tourName}</strong></td>
-                    <td>{formatDate(item.startDate)} - {formatDate(item.endDate)}</td>
-                    <td><span className={`booking-type-badge ${(item.scheduleType || 'Shared').toLowerCase()}`}>{item.scheduleType === 'PrivateGroup' ? 'Đoàn riêng' : 'Tour ghép'}</span></td>
-                    <td>{item.guideName || t('unassigned')}</td>
-                    <td>
-                      <div className="schedule-progress">
-                        <div><span style={{ width: `${percent}%` }} /></div>
-                        <small>{booked}/{totalSeats} {t('guests')}</small>
-                      </div>
-                    </td>
-                    <td><span className={`status-badge ${statusClass(item.status)}`}>{statusLabel(item.status)}</span></td>
-                    <td>{item.note || '-'}</td>
-                    {canManage && (
-                      <td className="row-actions">
-                        <button className="btn-sm" onClick={() => openEditForm(item)}>{t('edit')}</button>
-                        <button className="btn-sm btn-danger" onClick={() => handleDelete(item)}>{t('delete')}</button>
+                  return (
+                    <tr key={item.id}>
+                      <td><strong>{item.tourName}</strong></td>
+                      <td>{formatDate(item.startDate)} - {formatDate(item.endDate)}</td>
+                      <td><span className={`booking-type-badge ${(item.scheduleType || 'Shared').toLowerCase()}`}>{item.scheduleType === 'PrivateGroup' ? 'Đoàn riêng' : 'Tour ghép'}</span></td>
+                      <td>{formatVND(item.price)}</td>
+                      <td>{item.guideName || t('unassigned')}</td>
+                      <td>
+                        <div className="schedule-progress">
+                          <div><span style={{ width: `${percent}%` }} /></div>
+                          <small>{booked}/{totalSeats} {t('guests')}</small>
+                        </div>
                       </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td><span className={`status-badge ${statusClass(item.status)}`}>{statusLabel(item.status)}</span></td>
+                      <td>{item.note || '-'}</td>
+                      {canManage && (
+                        <td className="row-actions">
+                          <button className="btn-sm" onClick={() => openEditForm(item)}>{t('edit')}</button>
+                          <button className="btn-sm btn-danger" onClick={() => handleDelete(item)}>{t('delete')}</button>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            startItem={pagination.startItem}
+            endItem={pagination.endItem}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={value => {
+              setPageSize(value)
+              setPage(1)
+            }}
+            itemLabel="lịch trình"
+          />
+        </>
       )}
 
       {canManage && formOpen && (
@@ -238,7 +277,7 @@ export default function StaffSchedule({ canManage = false }) {
             <h2>{editItem ? t('updateSchedule') : t('addNewSchedule')}</h2>
             <div className="form-grid">
               <label>{t('tour')}
-                <select name="tourId" required defaultValue={editItem?.tourId || ''} disabled={!!editItem}>
+                <select name="tourId" required value={formTourId} onChange={event => setFormTourId(event.target.value)} disabled={!!editItem}>
                   <option value="">{t('selectTour')}</option>
                   {tours.map(tour => <option key={tour.id} value={tour.id}>{tour.name}</option>)}
                 </select>
@@ -251,6 +290,12 @@ export default function StaffSchedule({ canManage = false }) {
               </label>
               <label>{t('availableSeats')}
                 <input name="availableSeats" type="number" min="1" required defaultValue={editItem?.availableSeats || 20} />
+              </label>
+              <label>{t('priceVnd')}
+                <input key={`price-${editItem?.id || formTourId || 'new'}`} name="price" type="number" min="1" required defaultValue={editItem?.price || selectedTour?.price || 1} />
+              </label>
+              <label>{t('originalPriceVnd')}
+                <input key={`original-${editItem?.id || formTourId || 'new'}`} name="originalPrice" type="number" min="0" defaultValue={editItem?.originalPrice || selectedTour?.originalPrice || 0} />
               </label>
               <label>{t('status')}
                 <select name="status" defaultValue={editItem?.status || 'Open'}>

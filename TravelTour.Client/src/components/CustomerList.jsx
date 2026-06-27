@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { customerApi } from '../api'
+import Pagination from './Pagination'
 import { useSettings } from '../contexts/SettingsContext'
 import { useToast } from '../contexts/ToastContext'
+import { paginateItems } from '../utils/pagination'
 
 export default function CustomerList() {
   const toast = useToast()
@@ -10,8 +12,18 @@ export default function CustomerList() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => { loadCustomers() }, [])
+
+  const pagination = useMemo(() => paginateItems(customers, page, pageSize), [customers, page, pageSize])
+
+  useEffect(() => {
+    if (pagination.currentPage !== page) {
+      setPage(pagination.currentPage)
+    }
+  }, [page, pagination.currentPage])
 
   async function loadCustomers() {
     setLoading(true)
@@ -42,7 +54,7 @@ export default function CustomerList() {
   }
 
   async function handleDelete(id, name) {
-    if (!confirm(`Delete customer "${name}"?`)) return
+    if (!confirm(`Bạn có chắc muốn xóa khách hàng "${name}"?`)) return
     try {
       await customerApi.remove(id)
       loadCustomers()
@@ -85,26 +97,42 @@ export default function CustomerList() {
       ) : customers.length === 0 ? (
         <p className="empty-msg">{t('noCustomers')}</p>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>{t('fullName')}</th><th>{t('phone')}</th><th>Email</th><th>{t('address')}</th><th>{t('action')}</th></tr></thead>
-            <tbody>
-              {customers.map(customer => (
-                <tr key={customer.id}>
-                  <td>{customer.id}</td>
-                  <td>{customer.fullName}</td>
-                  <td>{customer.phone}</td>
-                  <td>{customer.email || '-'}</td>
-                  <td>{customer.address || '-'}</td>
-                  <td className="row-actions">
-                    <button className="btn-sm" onClick={() => { setEditItem(customer); setFormOpen(true) }}>{t('edit')}</button>
-                    <button className="btn-sm btn-danger" onClick={() => handleDelete(customer.id, customer.fullName)}>{t('delete')}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>{t('fullName')}</th><th>{t('phone')}</th><th>Email</th><th>{t('address')}</th><th>{t('action')}</th></tr></thead>
+              <tbody>
+                {pagination.items.map(customer => (
+                  <tr key={customer.id}>
+                    <td>{customer.id}</td>
+                    <td>{customer.fullName}</td>
+                    <td>{customer.phone}</td>
+                    <td>{customer.email || '-'}</td>
+                    <td>{customer.address || '-'}</td>
+                    <td className="row-actions">
+                      <button className="btn-sm" onClick={() => { setEditItem(customer); setFormOpen(true) }}>{t('edit')}</button>
+                      <button className="btn-sm btn-danger" onClick={() => handleDelete(customer.id, customer.fullName)}>{t('delete')}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            startItem={pagination.startItem}
+            endItem={pagination.endItem}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={value => {
+              setPageSize(value)
+              setPage(1)
+            }}
+            itemLabel="khách hàng"
+          />
+        </>
       )}
     </>
   )

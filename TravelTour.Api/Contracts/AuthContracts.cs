@@ -12,4 +12,4 @@ public record RegisterRequest(
     string? Address = null
 );
 
-public record AuthResponse(string Token, string Username, string FullName, string Role);
+public record AuthResponse(string Token, int Id, string Username, string FullName, string Role);

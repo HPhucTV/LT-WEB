@@ -12,7 +12,7 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
 {
     private readonly VnpayOptions _options = options.Value;
 
-    public VnpayCreatePaymentResult CreatePaymentUrl(Booking booking, string ipAddress)
+    public VnpayCreatePaymentResult CreatePaymentUrl(int bookingId, decimal amountValue, string ipAddress, string stage)
     {
         if (string.IsNullOrWhiteSpace(_options.TmnCode) ||
             string.IsNullOrWhiteSpace(_options.HashSecret) ||
@@ -22,8 +22,14 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
         }
 
         var now = DateTime.UtcNow.AddHours(7);
-        var amount = decimal.ToInt64(decimal.Round(booking.TotalAmount, 0, MidpointRounding.AwayFromZero)) * 100;
-        var transactionRef = $"{booking.Id}{now:HHmmssfff}";
+        var amount = decimal.ToInt64(decimal.Round(amountValue, 0, MidpointRounding.AwayFromZero)) * 100;
+        var transactionRef = $"{bookingId}{now:HHmmssfff}";
+        var orderInfo = stage switch
+        {
+            "deposit" => $"Thanh toán tiền cọc booking #{bookingId}",
+            "remaining" => $"Thanh toán phần còn lại booking #{bookingId}",
+            _ => $"Thanh toán booking #{bookingId}"
+        };
 
         var parameters = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
@@ -35,7 +41,7 @@ public class VnpayPaymentService(IOptions<VnpayOptions> options)
             ["vnp_CurrCode"] = "VND",
             ["vnp_IpAddr"] = NormalizeIpAddress(ipAddress),
             ["vnp_Locale"] = "vn",
-            ["vnp_OrderInfo"] = $"Thanh toán booking #{booking.Id}",
+            ["vnp_OrderInfo"] = orderInfo,
             ["vnp_OrderType"] = "other",
             ["vnp_ReturnUrl"] = _options.ReturnUrl,
             ["vnp_TxnRef"] = transactionRef

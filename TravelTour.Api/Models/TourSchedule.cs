@@ -14,6 +14,10 @@ public class TourSchedule
 
     public int AvailableSeats { get; set; }
 
+    public decimal Price { get; set; }
+
+    public decimal OriginalPrice { get; set; }
+
     public string Status { get; set; } = "Open";
 
     public string ScheduleType { get; set; } = "Shared";

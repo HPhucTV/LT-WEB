@@ -12,6 +12,9 @@ public class BookingRepository(AppDbContext db) : IBookingRepository
             .AsNoTracking()
             .Include(booking => booking.TourSchedule!)
                 .ThenInclude(schedule => schedule.Tour)
+            .Include(booking => booking.PrivateGroupBookingDetails)
+            .Include(booking => booking.PrivateGroupContract)
+            .Include(booking => booking.Passengers)
             .OrderByDescending(booking => booking.CreatedAt)
             .ToListAsync();
     }
@@ -23,14 +26,35 @@ public class BookingRepository(AppDbContext db) : IBookingRepository
         {
             query = query
                 .Include(booking => booking.TourSchedule!)
-                    .ThenInclude(schedule => schedule.Tour);
+                    .ThenInclude(schedule => schedule.Tour)
+                .Include(booking => booking.PrivateGroupBookingDetails)
+                .Include(booking => booking.PrivateGroupContract)
+                .Include(booking => booking.Passengers);
         }
         else
         {
-            query = query.Include(booking => booking.TourSchedule);
+            query = query
+                .Include(booking => booking.TourSchedule)
+                .Include(booking => booking.PrivateGroupBookingDetails)
+                .Include(booking => booking.PrivateGroupContract)
+                .Include(booking => booking.Passengers);
         }
 
         return await query.FirstOrDefaultAsync(booking => booking.Id == id);
+    }
+
+    public async Task<Booking?> GetByTransactionRefAsync(string transactionRef)
+    {
+        return await db.Bookings
+            .Include(booking => booking.TourSchedule!)
+                .ThenInclude(schedule => schedule.Tour)
+            .Include(booking => booking.PrivateGroupBookingDetails)
+            .Include(booking => booking.PrivateGroupContract)
+            .Include(booking => booking.Passengers)
+            .FirstOrDefaultAsync(booking =>
+                booking.MomoOrderId == transactionRef
+                || booking.PrivateGroupContract!.DepositTransactionRef == transactionRef
+                || booking.PrivateGroupContract!.RemainingTransactionRef == transactionRef);
     }
 
     public void Add(Booking booking)

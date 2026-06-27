@@ -43,6 +43,8 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
         schedule.StartDate = request.StartDate;
         schedule.EndDate = request.EndDate;
         schedule.AvailableSeats = request.AvailableSeats;
+        schedule.Price = request.Price;
+        schedule.OriginalPrice = request.OriginalPrice;
 
         var newStatus = request.Status.Trim();
         if (guide != null && (newStatus == "Pending" || newStatus == "Open"))
@@ -128,6 +130,8 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
             schedule.StartDate,
             schedule.EndDate,
             schedule.AvailableSeats,
+            schedule.Price,
+            schedule.OriginalPrice,
             schedule.Status,
             schedule.ScheduleType,
             schedule.GuideUserId,
@@ -140,6 +144,9 @@ public class ScheduleService(IScheduleRepository schedules, IUserRepository user
     {
         if (request.EndDate < request.StartDate) return "Ngày kết thúc phải sau ngày bắt đầu.";
         if (request.AvailableSeats <= 0) return "Số chỗ phải lớn hơn 0.";
+        if (request.Price <= 0) return "Giá lịch trình phải lớn hơn 0.";
+        if (request.OriginalPrice < 0) return "Giá gốc lịch trình không được âm.";
+        if (request.OriginalPrice > 0 && request.Price > request.OriginalPrice) return "Giá lịch trình sau giảm không được lớn hơn giá gốc.";
         if (string.IsNullOrWhiteSpace(request.Status)) return "Trạng thái không được để trống.";
         return null;
     }

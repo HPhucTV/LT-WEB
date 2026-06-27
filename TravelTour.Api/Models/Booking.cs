@@ -43,4 +43,10 @@ public class Booking
     public DateTime? PaidAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public PrivateGroupBookingDetails? PrivateGroupBookingDetails { get; set; }
+
+    public PrivateGroupContract? PrivateGroupContract { get; set; }
+
+    public List<BookingPassenger> Passengers { get; set; } = [];
 }

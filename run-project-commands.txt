@@ -9,7 +9,6 @@ dotnet run --launch-profile http
 Chạy frontend:
 cd "C:\Users\PC\Documents\Duy\LT WEB\TravelTour.Client"
 npm run dev -- --host 127.0.0.1
-npm run dev -- --host 127.0.0.1
 
 Địa chỉ thường dùng:
 Backend: http://localhost:5141

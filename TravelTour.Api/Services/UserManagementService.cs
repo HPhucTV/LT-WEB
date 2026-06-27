@@ -6,7 +6,7 @@ namespace TravelTour.Api.Services;
 
 public class UserManagementService(AppDbContext db)
 {
-    private static readonly string[] AllowedRoles = ["Admin", "Staff", "Customer"];
+    private static readonly string[] AllowedRoles = ["Admin", "Sales", "Staff", "Customer"];
 
     public async Task<List<object>> GetAllAsync()
     {
@@ -33,6 +33,18 @@ public class UserManagementService(AppDbContext db)
         await db.SaveChangesAsync();
 
         return ServiceResult<object>.Success(new { user.Id, user.Username, user.FullName, user.Role, user.CreatedAt });
+    }
+
+    public async Task<List<object>> GetSalesAsync()
+    {
+        var users = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Role == "Sales")
+            .OrderBy(u => u.FullName)
+            .Select(u => new { u.Id, u.Username, u.FullName, u.Role, u.CreatedAt })
+            .ToListAsync();
+
+        return users.Cast<object>().ToList();
     }
 
     public async Task<ServiceResult> DeleteAsync(int id)

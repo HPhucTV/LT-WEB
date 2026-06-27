@@ -22,17 +22,10 @@ public class BookingService(
         return (await bookings.GetAllAsync()).Select(ToResponse).ToList();
     }
 
-    /// <summary>
-    /// Trả về danh sách booking thuộc về khách hàng đang đăng nhập,
-    /// khớp theo CustomerEmail (ưu tiên), CustomerName hoặc tên đăng nhập.
-    /// </summary>
     public async Task<List<BookingResponse>> GetMineAsync(string? customerEmail, string? customerName, string? username)
     {
         var all = await bookings.GetAllAsync();
-        var mine = all.Where(b =>
-            (!string.IsNullOrWhiteSpace(customerEmail) && b.CustomerEmail.Equals(customerEmail, StringComparison.OrdinalIgnoreCase))
-            || (!string.IsNullOrWhiteSpace(customerName) && b.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
-            || (!string.IsNullOrWhiteSpace(username) && b.CustomerName.Equals(username, StringComparison.OrdinalIgnoreCase)));
+        var mine = all.Where(booking => CanAccessBooking(booking, customerEmail, customerName, username, false));
         return mine.Select(ToResponse).ToList();
     }
 
@@ -44,7 +37,7 @@ public class BookingService(
         }
 
         var bookingType = NormalizeBookingType(request.BookingType);
-        var error = Validate(request);
+        var error = Validate(request, bookingType);
         if (error is not null)
         {
             return ServiceResult<BookingResponse>.BadRequest(error);
@@ -53,6 +46,74 @@ public class BookingService(
         return bookingType == "PrivateGroup"
             ? await CreatePrivateGroupAsync(request)
             : await CreateSharedAsync(request);
+    }
+
+    public async Task<ServiceResult<BookingResponse>> GetContractAsync(
+        int id,
+        string? customerEmail,
+        string? customerName,
+        string? username,
+        bool isPrivileged)
+    {
+        var booking = await bookings.GetByIdAsync(id, includeTour: true);
+        if (booking is null)
+        {
+            return ServiceResult<BookingResponse>.NotFound();
+        }
+
+        if (!IsPrivateGroup(booking))
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Chỉ booking đoàn mới có hợp đồng.");
+        }
+
+        if (!CanAccessBooking(booking, customerEmail, customerName, username, isPrivileged))
+        {
+            return ServiceResult<BookingResponse>.Forbidden("Bạn không có quyền xem hợp đồng này.");
+        }
+
+        return ServiceResult<BookingResponse>.Success(ToResponse(booking));
+    }
+
+    public async Task<ServiceResult<BookingResponse>> SignContractAsync(
+        int id,
+        CustomerContractSignatureRequest request,
+        string? customerEmail,
+        string? customerName,
+        string? username)
+    {
+        var booking = await bookings.GetByIdAsync(id, includeTour: true);
+        if (booking is null)
+        {
+            return ServiceResult<BookingResponse>.NotFound();
+        }
+
+        if (!IsPrivateGroup(booking))
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Chỉ booking đoàn mới cần ký hợp đồng.");
+        }
+
+        if (!CanAccessBooking(booking, customerEmail, customerName, username, false))
+        {
+            return ServiceResult<BookingResponse>.Forbidden("Bạn không có quyền ký hợp đồng này.");
+        }
+
+        var contract = EnsurePrivateGroupContract(booking);
+        if (contract.ContractStatus != "Confirmed")
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Hợp đồng cần được Sales chốt trước khi khách xác nhận.");
+        }
+
+        if (contract.CustomerSignatureStatus == "Signed")
+        {
+            return ServiceResult<BookingResponse>.Success(ToResponse(booking));
+        }
+
+        contract.CustomerSignedByName = TrimToNull(request.SignedByName) ?? booking.CustomerName;
+        contract.CustomerSignedAt = DateTime.UtcNow;
+        contract.CustomerSignatureStatus = "Signed";
+        await bookings.SaveChangesAsync();
+
+        return ServiceResult<BookingResponse>.Success(ToResponse(booking));
     }
 
     private async Task<ServiceResult<BookingResponse>> CreateSharedAsync(BookingRequest request)
@@ -83,13 +144,13 @@ public class BookingService(
             return ServiceResult<BookingResponse>.BadRequest($"Chỉ còn {schedule.AvailableSeats} chỗ trống.");
         }
 
-        var voucher = GetVoucherDiscount(request.VoucherCode, schedule.Tour!.Price * request.GuestCount);
+        var grossAmount = schedule.Price * request.GuestCount;
+        var voucher = GetVoucherDiscount(request.VoucherCode, grossAmount);
         if (voucher.Error is not null)
         {
             return ServiceResult<BookingResponse>.BadRequest(voucher.Error);
         }
 
-        var grossAmount = schedule.Tour.Price * request.GuestCount;
         var booking = new Booking
         {
             TourScheduleId = schedule.Id,
@@ -102,7 +163,8 @@ public class BookingService(
             VoucherCode = voucher.Code,
             VoucherDiscountAmount = voucher.DiscountAmount,
             TotalAmount = Math.Max(0, grossAmount - voucher.DiscountAmount),
-            Status = "Pending"
+            Status = "Pending",
+            PaymentStatus = "Unpaid"
         };
 
         schedule.AvailableSeats -= request.GuestCount;
@@ -124,6 +186,10 @@ public class BookingService(
             return ServiceResult<BookingResponse>.BadRequest("Vui lòng chọn ngày khởi hành mong muốn.");
         }
 
+        var adultCount = request.AdultCount;
+        var childCount = request.ChildCount;
+        var guestCount = adultCount + childCount;
+
         var tour = await tours.GetByIdAsync(request.TourId.Value);
         if (tour is null)
         {
@@ -140,13 +206,13 @@ public class BookingService(
             return ServiceResult<BookingResponse>.BadRequest("Ngày khởi hành không được ở trong quá khứ.");
         }
 
-        if (request.GuestCount < tour.MinGroupGuests)
+        if (guestCount < tour.MinGroupGuests)
         {
             return ServiceResult<BookingResponse>.BadRequest(
                 $"Đi theo đoàn cần ít nhất {tour.MinGroupGuests} khách cho tour này.");
         }
 
-        if (request.GuestCount > tour.MaxGuests)
+        if (guestCount > tour.MaxGuests)
         {
             return ServiceResult<BookingResponse>.BadRequest(
                 $"Tour này chỉ nhận tối đa {tour.MaxGuests} khách cho một đoàn.");
@@ -159,18 +225,15 @@ public class BookingService(
             Tour = tour,
             StartDate = startDate,
             EndDate = startDate.AddDays(tour.DurationDays - 1),
-            AvailableSeats = request.GuestCount,
+            AvailableSeats = guestCount,
+            Price = tour.Price,
+            OriginalPrice = tour.OriginalPrice,
             Status = "Pending",
             ScheduleType = "PrivateGroup",
             Note = $"Yêu cầu đặt đoàn của {request.CustomerName.Trim()}"
         };
 
-        var grossAmount = tour.Price * request.GuestCount;
-        var voucher = GetVoucherDiscount(request.VoucherCode, grossAmount);
-        if (voucher.Error is not null)
-        {
-            return ServiceResult<BookingResponse>.BadRequest(voucher.Error);
-        }
+        var estimatedAmount = adultCount * tour.Price + childCount * decimal.Round(tour.Price * 0.5m, 2, MidpointRounding.AwayFromZero);
 
         var booking = new Booking
         {
@@ -178,12 +241,23 @@ public class BookingService(
             CustomerName = request.CustomerName.Trim(),
             CustomerPhone = request.CustomerPhone.Trim(),
             CustomerEmail = request.CustomerEmail.Trim(),
-            GuestCount = request.GuestCount,
+            GuestCount = guestCount,
             BookingType = "PrivateGroup",
-            VoucherCode = voucher.Code,
-            VoucherDiscountAmount = voucher.DiscountAmount,
-            TotalAmount = Math.Max(0, grossAmount - voucher.DiscountAmount),
-            Status = "Pending"
+            TotalAmount = estimatedAmount,
+            Status = "Pending",
+            PaymentStatus = "Unpaid",
+            PrivateGroupBookingDetails = new PrivateGroupBookingDetails
+            {
+                RequestNote = TrimToNull(request.RequestNote),
+                AdultCount = adultCount,
+                ChildCount = childCount,
+                EstimatedAmount = estimatedAmount,
+            },
+            PrivateGroupContract = new PrivateGroupContract
+            {
+                ContractStatus = "Pending",
+                CustomerSignatureStatus = "Pending",
+            }
         };
 
         schedules.Add(schedule);
@@ -208,9 +282,9 @@ public class BookingService(
         }
 
         var isPrivateGroup = IsPrivateGroup(booking);
-        if (isPrivateGroup && nextStatus == "Confirmed" && booking.TourSchedule?.GuideUserId is null)
+        if (isPrivateGroup && nextStatus == "Confirmed" && EnsurePrivateGroupContract(booking).ContractStatus != "Confirmed")
         {
-            return ServiceResult<BookingResponse>.BadRequest("Vui lòng phân nhân viên trước khi xác nhận booking đoàn.");
+            return ServiceResult<BookingResponse>.BadRequest("Vui lòng chốt hợp đồng đoàn trước khi xác nhận booking.");
         }
 
         if (nextStatus == "Cancelled" && booking.Status != "Cancelled")
@@ -218,6 +292,7 @@ public class BookingService(
             if (isPrivateGroup)
             {
                 booking.TourSchedule!.Status = "Cancelled";
+                EnsurePrivateGroupContract(booking).ContractStatus = "Cancelled";
             }
             else
             {
@@ -244,14 +319,36 @@ public class BookingService(
             return ServiceResult<BookingResponse>.BadRequest("Chỉ booking đoàn mới cần phân nhân viên.");
         }
 
-        if (booking.Status == "Cancelled")
+        return ServiceResult<BookingResponse>.BadRequest("Vui lòng dùng chức năng chốt hợp đồng đoàn để phân Sales, HDV và tổng hợp đồng.");
+    }
+
+    public async Task<ServiceResult<BookingResponse>> ConfirmContractAsync(int id, ContractConfirmationRequest request)
+    {
+        var booking = await bookings.GetByIdAsync(id, includeTour: true);
+        if (booking is null)
         {
-            return ServiceResult<BookingResponse>.BadRequest("Booking đã hủy, không thể phân nhân viên.");
+            return ServiceResult<BookingResponse>.NotFound();
         }
 
-        if (request.GuideUserId is null)
+        if (!IsPrivateGroup(booking))
         {
-            return ServiceResult<BookingResponse>.BadRequest("Vui lòng chọn nhân viên.");
+            return ServiceResult<BookingResponse>.BadRequest("Chỉ booking đoàn mới cần chốt hợp đồng.");
+        }
+
+        if (booking.Status == "Cancelled")
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Booking đã hủy, không thể chốt hợp đồng.");
+        }
+
+        if (request.ContractAmount <= 0)
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Tổng hợp đồng phải lớn hơn 0.");
+        }
+
+        var sales = await users.GetSalesByIdAsync(request.SalesUserId);
+        if (sales is null)
+        {
+            return ServiceResult<BookingResponse>.BadRequest("Nhân viên Sales không hợp lệ.");
         }
 
         var guide = await users.GetGuideByIdAsync(request.GuideUserId);
@@ -261,16 +358,42 @@ public class BookingService(
         }
 
         var schedule = booking.TourSchedule!;
+        var contract = EnsurePrivateGroupContract(booking);
         if (await schedules.HasGuideConflictAsync(guide.Id, schedule.StartDate, schedule.EndDate, schedule.Id))
         {
             return ServiceResult<BookingResponse>.BadRequest("Nhân viên đã có tour trong khoảng thời gian này.");
         }
 
+        var depositAmount = decimal.Round(request.ContractAmount * 0.3m, 2, MidpointRounding.AwayFromZero);
+        var remainingAmount = request.ContractAmount - depositAmount;
+
         schedule.GuideUserId = guide.Id;
         schedule.GuideName = guide.FullName;
+        schedule.Price = decimal.Round(request.ContractAmount / Math.Max(1, booking.GuestCount), 2, MidpointRounding.AwayFromZero);
         schedule.Status = "Assigned";
         schedule.ScheduleType = "PrivateGroup";
+
+        booking.TotalAmount = request.ContractAmount;
+        contract.SalesUserId = sales.Id;
+        contract.SalesName = sales.FullName;
+        contract.ContractAmount = request.ContractAmount;
+        contract.PaymentTerms = TrimToNull(request.PaymentTerms);
+        contract.CancellationTerms = TrimToNull(request.CancellationTerms);
+        contract.DepositAmount = depositAmount;
+        contract.RemainingAmount = remainingAmount;
+        contract.RemainingDueDate = schedule.StartDate.AddDays(-5);
+        contract.DepositPaymentStatus = contract.DepositPaymentStatus == "Paid" ? "Paid" : "Unpaid";
+        contract.RemainingPaymentStatus = contract.RemainingPaymentStatus == "Paid" ? "Paid" : "Unpaid";
+        contract.SalesSignedByUserId = sales.Id;
+        contract.SalesSignedByName = sales.FullName;
+        contract.SalesSignedAt = DateTime.UtcNow;
+        contract.ContractStatus = "Confirmed";
         booking.Status = "Confirmed";
+        booking.PaymentStatus = contract.RemainingPaymentStatus == "Paid"
+            ? "Paid"
+            : contract.DepositPaymentStatus == "Paid"
+                ? "DepositPaid"
+                : "Unpaid";
 
         await bookings.SaveChangesAsync();
 
@@ -288,6 +411,7 @@ public class BookingService(
         if (IsPrivateGroup(booking))
         {
             schedules.Remove(booking.TourSchedule!);
+            bookings.Remove(booking);
         }
         else
         {
@@ -306,6 +430,13 @@ public class BookingService(
 
     private static BookingResponse ToResponse(Booking booking)
     {
+        var details = booking.PrivateGroupBookingDetails;
+        var contract = booking.PrivateGroupContract;
+        var isPrivateGroup = IsPrivateGroup(booking);
+        var adultCount = isPrivateGroup ? details?.AdultCount ?? 0 : booking.GuestCount;
+        var childCount = isPrivateGroup ? details?.ChildCount ?? 0 : 0;
+        var estimatedAmount = isPrivateGroup ? details?.EstimatedAmount ?? booking.TotalAmount : booking.TotalAmount;
+
         return new BookingResponse(
             booking.Id,
             booking.TourScheduleId,
@@ -317,6 +448,28 @@ public class BookingService(
             booking.CustomerEmail,
             booking.GuestCount,
             booking.BookingType,
+            details?.RequestNote,
+            contract?.PaymentTerms,
+            contract?.CancellationTerms,
+            contract?.SalesUserId,
+            contract?.SalesName,
+            contract?.ContractStatus ?? "None",
+            contract?.ContractAmount ?? 0,
+            estimatedAmount,
+            adultCount,
+            childCount,
+            contract?.DepositAmount ?? 0,
+            contract?.RemainingAmount ?? 0,
+            contract?.RemainingDueDate,
+            contract?.DepositPaymentStatus ?? "Unpaid",
+            contract?.RemainingPaymentStatus ?? "Unpaid",
+            contract?.DepositPaidAt,
+            contract?.RemainingPaidAt,
+            contract?.SalesSignedByName,
+            contract?.SalesSignedAt,
+            contract?.CustomerSignedByName,
+            contract?.CustomerSignedAt,
+            contract?.CustomerSignatureStatus ?? "Pending",
             booking.VoucherCode,
             booking.VoucherDiscountAmount,
             booking.TourSchedule.ScheduleType,
@@ -327,17 +480,36 @@ public class BookingService(
             booking.Status,
             booking.PaymentMethod,
             booking.PaymentStatus,
-            booking.MomoTransactionId ?? booking.MomoOrderId,
+            booking.MomoTransactionId ?? booking.MomoOrderId ?? contract?.DepositTransactionRef ?? contract?.RemainingTransactionRef,
             booking.PaidAt,
-            booking.CreatedAt);
+            booking.CreatedAt,
+            booking.Passengers
+                .OrderBy(passenger => passenger.DateOfBirth)
+                .Select(passenger => new BookingPassengerResponse(
+                    passenger.Id,
+                    passenger.FullName,
+                    passenger.DateOfBirth,
+                    passenger.PassengerType,
+                    passenger.IdentityNumber,
+                    passenger.Phone))
+                .ToList());
     }
 
-    private static string? Validate(BookingRequest request)
+    private static string? Validate(BookingRequest request, string bookingType)
     {
         if (string.IsNullOrWhiteSpace(request.CustomerName)) return "Tên khách hàng không được để trống.";
         if (string.IsNullOrWhiteSpace(request.CustomerPhone)) return "Số điện thoại không được để trống.";
         if (string.IsNullOrWhiteSpace(request.CustomerEmail)) return "Email không được để trống.";
         if (!IsValidEmail(request.CustomerEmail)) return "Email không hợp lệ.";
+
+        if (bookingType == "PrivateGroup")
+        {
+            if (request.AdultCount < 0) return "Số lượng người lớn không hợp lệ.";
+            if (request.ChildCount < 0) return "Số lượng trẻ em không hợp lệ.";
+            if (request.AdultCount + request.ChildCount <= 0) return "Tour đoàn cần có ít nhất 1 khách.";
+            return null;
+        }
+
         if (request.GuestCount <= 0) return "Số khách phải lớn hơn 0.";
         return null;
     }
@@ -384,6 +556,40 @@ public class BookingService(
     {
         return booking.BookingType == "PrivateGroup"
             || booking.TourSchedule?.ScheduleType == "PrivateGroup";
+    }
+
+    private static PrivateGroupContract EnsurePrivateGroupContract(Booking booking)
+    {
+        booking.PrivateGroupContract ??= new PrivateGroupContract
+        {
+            Booking = booking,
+            BookingId = booking.Id,
+            ContractStatus = "Pending",
+            CustomerSignatureStatus = "Pending",
+        };
+        return booking.PrivateGroupContract;
+    }
+
+    private static bool CanAccessBooking(
+        Booking booking,
+        string? customerEmail,
+        string? customerName,
+        string? username,
+        bool isPrivileged)
+    {
+        if (isPrivileged)
+        {
+            return true;
+        }
+
+        return (!string.IsNullOrWhiteSpace(customerEmail) && booking.CustomerEmail.Equals(customerEmail, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(customerName) && booking.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(username) && booking.CustomerName.Equals(username, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private sealed record VoucherApplyResult(string? Code, decimal DiscountAmount, string? Error);
